@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Copyright 2014 CNAV.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jee="http://www.springframework.org/schema/jee"
+       xmlns:jms="http://www.springframework.org/schema/jms"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+            http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms.xsd
+            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+            http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd">
+    
+    <context:component-scan base-package="eu.w4.contrib.bpmnplus.module.jms" />
+    
+    <!-- JMS annotation driven (Spring 4.1) -->
+    <jms:annotation-driven/>
+    
+    <!-- JMS properties -->
+    <context:property-placeholder location="classpath:jms.properties" />
+    
+    <!-- JNDI properties-->
+    <util:properties id="jndiProperties" location="classpath:jndi.properties"/>
+    
+    <!-- Lookup JNDI de la connection fatory -->
+    <!-- =================================== -->
+    <jee:jndi-lookup id="jmsConnectionFactory"
+                     jndi-name="${jms.connection.factory.name}"
+                     cache="false"
+                     lookup-on-startup="false"
+                     proxy-interface="javax.jms.QueueConnectionFactory"
+                     environment-ref="jndiProperties" />
+    
+
+    <!-- Cache des connexions au broker JMS -->
+    <!--  NB : à propos du cacheConsumers : https://stackoverflow.com/questions/27022181/prevent-use-of-cachingconnectionfactory-with-defaultjmslistenercontainerfactory -->
+    <bean id="cachedConnectionFactory" 
+          class="org.springframework.jms.connection.CachingConnectionFactory"
+        p:targetConnectionFactory-ref="jmsConnectionFactory"
+        p:cacheConsumers="false"
+        p:sessionCacheSize="3" />
+    
+    <!-- Destination des messages -->
+    <!-- ======================== -->
+    <bean id="jndiTemplate" class="org.springframework.jndi.JndiTemplate"
+        p:environment-ref="jndiProperties" />
+    <bean id="jndiDestinationResolver" class="org.springframework.jms.support.destination.JndiDestinationResolver"
+        p:jndiTemplate-ref="jndiTemplate"
+        p:cache="true" />
+    
+    <!-- Define an exponential BackOff to retry broker connection -->
+    <!-- Notes: -->
+    <!-- - DEFAULT_INITIAL_INTERVAL=2000L -> 2s -->
+    <!-- - DEFAULT_MULTIPLIER=1.5 -->
+    <!-- - DEFAULT_MAX_ELAPSED_TIME=9223372036854775807L -->
+    <!-- - DEFAULT_MAX_INTERVAL=30000L -> 30s -->
+        <bean id="exponentialBackOff" class="org.springframework.util.backoff.ExponentialBackOff">
+            <constructor-arg name="initialInterval" value="2000"/>
+            <constructor-arg name="multiplier" value="1.5"/>
+        </bean>
+    
+    <!-- La JmsListenerContainerFactory est responsable de la création du container
+        de listener lui-même responsable d'un endpoint particulier -->
+    <!-- Container qui va gérer des listeners concurrents avec différents paramétrages -->
+    <!-- Elle permet d'adapter dynamiquement le nombre de consumers utilisés en fonction du nombre de messages à traiter. -->
+    <!-- Chaque consumer possède sa propre connexion au broker. -->
+    <!-- Propriétés : -->
+    <!--  - concurrentConsumers : permet de préciser le nombre de consumers à utiliser (modifiable dynamiquement au runtime). -->
+    <!--  - ET maxConcurrentConsumers : permet de préciser le nombre maximal de consumers utilisables (modifiable dynamiquement au runtime). -->
+    <!--  - OU concurrency : permet de préciser le nombre de consumers et le nombre maximal de consumers en séparant les deux valeurs par un caractère tiret. -->
+    <!--  - idleConsumerLimit : permet de préciser le nombre de consumers inactifs qui doivent rester chargés. Ceci permet de réutiliser des consumers sans avoir à toujours en recréer. -->
+    <!--  - idleTaskExecutionLimit : permet de préciser le nombre de consumers inactifs. Par défaut, la valeur est 1, ce qui implique une libération des ressources dès que le consumer ne traite plus de messages -->
+    <!--  - maxMessagesPerTask : permet de préciser le nombre maximum de messages à traiter. La valeur par défaut est -1, ce qui signifie un nombre illimité -->
+    <!--  - receiveTimeout : le timeout d'attente avant de vérifier la réception d'un message. La valeur par défaut est 1000 ms. -->
+    <!--    NOTE: This value needs to be smaller than the transaction timeout used by the transaction manager (in the appropriate unit, of course). -1 indicates no timeout at all; however, this is only feasible if not running within a transaction manager. -->
+    <!--  - sessionAcknowledgeMode : 2=CLIENT_ACKNOWLEDGE -->
+    <bean id="jmsListenerContainerFactory"
+          class="org.springframework.jms.config.DefaultJmsListenerContainerFactory" 
+          p:sessionAcknowledgeMode="#{T(javax.jms.Session).CLIENT_ACKNOWLEDGE}"
+          p:connectionFactory-ref="cachedConnectionFactory"
+          p:destinationResolver-ref="jndiDestinationResolver"
+          p:concurrency="${concurrency.default:3}-${concurrency.max:6}"
+          p:backOff-ref="exponentialBackOff"
+          p:receiveTimeout="1000" />
+    
+    <!-- Activate JMX and reuse existing MBeanServer -->
+    <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
+        <property name="locateExistingServerIfPossible" value="true"/>
+    </bean>
+    
+    <!-- Expose through JMX -->
+    <bean id="jmxExporter" class="org.springframework.jmx.export.MBeanExporter">
+        <property name="server" ref="mbeanServer"/>
+        <property name="beans">
+            <map>
+                <entry key="eu.w4.moduleJMS:name=jmsListenerContainerFactory" value-ref="jmsListenerContainerFactory"/>
+            </map>
+        </property>
+
+   </bean>
+</beans>

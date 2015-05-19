@@ -1,0 +1,56 @@
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3" 
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
+  <id>module</id>
+  <formats>
+    <!-- *nix -->
+    <format>tar.gz</format>
+    <!-- Windows -->
+    <format>zip</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <files>
+    <!-- Put project binary in the lib/module subfolder -->
+    <file>
+      <source>${project.build.directory}/${artifactId}-${version}.${packaging}</source>
+      <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/lib/module</outputDirectory>-->
+      <outputDirectory>/modules/${project.artifactId}/lib/module</outputDirectory>
+      <!-- Remove version from binary name -->
+      <destName>${artifact.artifactId}.${packaging}</destName>
+    </file>
+  </files>
+  <fileSets>
+    <!-- Put text files in root directory -->
+    <fileSet>
+      <directory>${project.basedir}</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>README*</include>
+        <include>LICENSE*</include>
+        <include>NOTICE*</include>
+      </includes>
+    </fileSet>
+    <!-- Put conf samples in the conf subfolder -->
+    <fileSet>
+      <directory>${project.basedir}/src/main/conf</directory>
+      <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/conf</outputDirectory>-->
+      <outputDirectory>/modules/${project.artifactId}/conf</outputDirectory>
+      <includes>
+        <include>*</include>
+      </includes>
+    </fileSet>
+  </fileSets>
+  <dependencySets>
+    <!-- Put deps in the lb/ext subfolder -->
+    <dependencySet>
+      <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/lib/ext</outputDirectory>-->
+      <outputDirectory>/modules/${project.artifactId}/lib/ext</outputDirectory>
+      <useProjectArtifact>false</useProjectArtifact>
+      <useProjectAttachments>false</useProjectAttachments>
+      <unpack>false</unpack>
+      <scope>runtime</scope>
+      <!-- Remove version number from deps (jar) names -->
+      <outputFileNameMapping>${artifact.artifactId}.${artifact.extension}</outputFileNameMapping>
+    </dependencySet>
+  </dependencySets>
+</assembly>

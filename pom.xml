@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>eu.w4.contrib</groupId>
+  <artifactId>bpmnplus-module-jms</artifactId>
+  <version>1.1.0</version>
+  <packaging>jar</packaging>
+  <name>BPMN+ JMS Module</name>
+  <description>A JMS module listening to messages and interacting with BPMN+ Engine</description>
+  <url>https://github.com/benjamin-cartereau/w4-bpmnplus-module-jms</url>
+
+  <properties>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    
+    <version.w4.client>[9.1.0,)</version.w4.client>
+    <version.w4.common>[9.1.0,)</version.w4.common>
+    
+    <version.jms>1.1</version.jms>
+    <version.spring>4.1.4.RELEASE</version.spring>
+    <version.jackson>2.4.3</version.jackson>
+    <version.orika>1.4.5</version.orika>
+    <version.log4j>2.1</version.log4j>
+  </properties>
+
+  <build>
+    <plugins>
+	  <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <archive>
+            <!-- Remove versions numbers from external libs names -->
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <classpathLayoutType>custom</classpathLayoutType>
+              <customClasspathLayout>${artifact.artifactId}${artifact.dashClassifier?}.${artifact.extension}</customClasspathLayout>
+            </manifest>
+            <manifestEntries>
+              <!-- Add conf directory to the ClassPath -->
+              <Class-Path>../../conf/</Class-Path>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.5.2</version>
+        <configuration>
+          <descriptor>src/assembly/engine-module.xml</descriptor>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <repositories>
+    <!--
+      To be able to access the following repository, you will need to configure
+      your w4store's credentials in maven settings.xml with the following snippet
+        <server>
+            <id>w4store</id>
+            <username>...</username>
+            <password>mypass456</password>
+        </server>
+    -->
+    <repository>
+      <id>w4store</id>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+      <url>http://maven.w4store.com/repository/all/</url>
+    </repository>
+  </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+	  <!-- Spring BOM -->
+      <dependency>
+        <groupId>org.springframework</groupId>
+        <artifactId>spring-framework-bom</artifactId>
+        <version>${version.spring}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+	  <!-- Log4j BOM -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>${version.log4j}</version>
+        <scope>import</scope>
+        <type>pom</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  
+  <dependencies>
+   <!-- JMS API -->
+    <dependency>
+      <groupId>javax.jms</groupId>
+      <artifactId>jms</artifactId>
+      <version>${version.jms}</version>
+    </dependency>
+
+    <!-- W4 -->
+    <dependency>
+      <groupId>eu.w4</groupId>
+      <artifactId>bpmn-engine-client</artifactId>
+      <version>${version.w4.client}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>eu.w4</groupId>
+      <artifactId>bpmn-engine-externalmodule</artifactId>
+      <version>${version.w4.client}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>eu.w4</groupId>
+      <artifactId>w4-common-client</artifactId>
+      <version>${version.w4.common}</version>
+      <scope>provided</scope>
+    </dependency>
+    
+    <!-- Spring -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+      <!--<exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>-->
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jms</artifactId>
+    </dependency>
+        
+    <!-- JSON -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${version.jackson}</version>
+    </dependency>
+              
+    <!-- JavaBean Mapping -->
+    <dependency>
+      <groupId>ma.glasnost.orika</groupId>
+      <artifactId>orika-core</artifactId>
+      <version>${version.orika}</version>
+    </dependency>
+                            
+    <!-- Logging -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jcl</artifactId>
+    </dependency>
+  </dependencies>
+
+  <distributionManagement>
+    <repository>
+      <id>w4store</id>
+      <url>http://maven.w4store.com/repository/contrib/</url>
+    </repository>
+  </distributionManagement>
+
+  <scm>
+    <url>https://github.com/benjamin-cartereau/w4-bpmnplus-module-jms</url>
+    <connection>scm:git:https://github.com/benjamin-cartereau/w4-bpmnplus-module-jms.git</connection>
+  </scm>
+
+  <licenses>
+    <license>
+      <name>MIT</name>
+      <url>https://github.com/benjamin-cartereau/w4-bpmnplus-module-jms/LICENSE</url>
+    </license>
+  </licenses>
+
+</project>
