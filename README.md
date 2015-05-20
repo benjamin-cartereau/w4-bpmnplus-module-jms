@@ -61,11 +61,9 @@ Into the file "configuration.properties" endpoints should be configured :
   - module.jms.endpoint.[endpoint id].bpmn.data_entry_id : id of the data entry to set. The data entry's type can be string or XSD.
   - module.jms.endpoint.[endpoint id].mapping * : none (default) or json. Make it possible to pass an object serialized as JSON (TextMessage) and automatically process the mapping before setting the data entry value.
 
-* To be able to process the mapping (string->object), the module need 2 things:
+\* To be able to process the mapping (string->object), the module need 2 things:
  - The fully qualified class name of the object : it should be specified by the message sender through the JMS property named "ClassName"
  - The class that could be encapsulated into a jar file and dropped into ext folder.
-
-When using 
 
 #### Log4j2
 
@@ -75,7 +73,7 @@ This is a standard [Log4j 2](http://logging.apache.org/log4j/2.x/ "Log4j 2.x") c
 
 Eventually, to allow the module to connect to the JMS broker (through the JNDI provider), you will have to add associated libraries into the ext dir : `W4BPMPLUS_HOME/modules/bpmnplus-module-jms/lib/ext`.
 For example when using Active MQ 5.11, you will have to add those libraries:
- - activemq-client-5.11.1.jar
+ - activemq-client-5.11.*.jar
  - geronimo-j2ee-management_1.1_spec-1.0.1.jar
 
 Usage
