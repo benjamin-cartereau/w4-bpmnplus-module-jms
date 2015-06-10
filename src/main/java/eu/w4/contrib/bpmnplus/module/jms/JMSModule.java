@@ -16,7 +16,10 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.env.MapPropertySource;
 
 /**
- * JMS Module for W4 enabling to listen to JMS destination and start a process
+ * Entry point for module definition.
+ * JMS Module for W4 enabling to listen to JMS destination and interact with processes :<ul>
+ * <li>instantiate a process</li>
+ * <li>trigger a signal</li></ul>
  */
 public class JMSModule implements ExternalModule {
     final Log logger = LogFactory.getLog(JMSModule.class);

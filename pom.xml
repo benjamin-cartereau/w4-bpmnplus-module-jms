@@ -5,7 +5,7 @@
 
   <groupId>eu.w4.contrib</groupId>
   <artifactId>bpmnplus-module-jms</artifactId>
-  <version>1.1.0</version>
+  <version>1.2.0-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>BPMN+ JMS Module</name>
   <description>A JMS module listening to messages and interacting with BPMN+ Engine</description>
@@ -16,8 +16,8 @@
     <maven.compiler.target>1.7</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     
-    <version.w4.client>[9.1.0,)</version.w4.client>
-    <version.w4.common>[9.1.0,)</version.w4.common>
+    <version.w4.client>[9.2.0,)</version.w4.client>
+    <version.w4.common>[9.2.0,)</version.w4.common>
     
     <version.jms>1.1</version.jms>
     <version.spring>4.1.4.RELEASE</version.spring>
@@ -33,6 +33,10 @@
         <artifactId>maven-jar-plugin</artifactId>
         <version>2.5</version>
         <configuration>
+          <!-- Exclude samples files from jar. They will be added in the assembly. -->
+          <excludes>
+            <exclude>samples/**</exclude>
+          </excludes>
           <archive>
             <!-- Remove versions numbers from external libs names -->
             <manifest>
@@ -40,10 +44,11 @@
               <classpathLayoutType>custom</classpathLayoutType>
               <customClasspathLayout>${artifact.artifactId}${artifact.dashClassifier?}.${artifact.extension}</customClasspathLayout>
             </manifest>
+            <!-- Add conf directory to the ClassPath -->
+            <!--
             <manifestEntries>
-              <!-- Add conf directory to the ClassPath -->
               <Class-Path>../../conf/</Class-Path>
-            </manifestEntries>
+            </manifestEntries>-->
           </archive>
         </configuration>
       </plugin>
@@ -123,19 +128,16 @@
       <groupId>eu.w4</groupId>
       <artifactId>bpmn-engine-client</artifactId>
       <version>${version.w4.client}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>eu.w4</groupId>
       <artifactId>bpmn-engine-externalmodule</artifactId>
       <version>${version.w4.client}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>eu.w4</groupId>
       <artifactId>w4-common-client</artifactId>
       <version>${version.w4.common}</version>
-      <scope>provided</scope>
     </dependency>
     
     <!-- Spring -->
@@ -180,6 +182,18 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-jcl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.9.1</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.3.2</version>
+      <type>jar</type>
     </dependency>
   </dependencies>
 

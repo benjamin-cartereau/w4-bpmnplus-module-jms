@@ -32,9 +32,9 @@
     </fileSet>
     <!-- Put conf samples in the conf subfolder -->
     <fileSet>
-      <directory>${project.basedir}/src/main/conf</directory>
+      <directory>${project.basedir}/src/main/resources/samples</directory>
       <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/conf</outputDirectory>-->
-      <outputDirectory>/modules/${project.artifactId}/conf</outputDirectory>
+      <outputDirectory>/modules/${project.artifactId}/resources</outputDirectory>
       <includes>
         <include>*</include>
       </includes>

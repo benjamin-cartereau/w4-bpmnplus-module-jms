@@ -26,6 +26,10 @@ Copyright 2014 CNAV.
     <!-- JNDI properties-->
     <util:properties id="jndiProperties" location="classpath:jndi.properties"/>
     
+    <bean id="configurationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean"
+          p:location="classpath:configuration.properties"
+          p:ignoreResourceNotFound="true" />
+    
     <!-- Lookup JNDI de la connection fatory -->
     <!-- =================================== -->
     <jee:jndi-lookup id="jmsConnectionFactory"

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <properties>
+        <!-- W4 root log path -->
+        <property name="log-path">logs</property>
+    </properties>
+    <appenders>
+        <Console name="consoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d: %-5p [%-8t] [%C{1}.%M():%L] - %m%n"/>
+        </Console>
+        <RollingFile name="dailyRollingFileAppender" fileName="${log-path}/jms-module.log"
+                                                     filePattern="jms-module-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="%d: %-5p [%-8t] [%C{1}.%M():%L] - %m%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="24" modulate="true" />
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+    </appenders>
+    <loggers>
+        <Root level="warn"> <!-- error, warn, info, debug -->
+            <!--AppenderRef ref="consoleAppender" /-->
+            <AppenderRef ref="dailyRollingFileAppender" />
+        </Root>
+    </loggers>
+</configuration>
