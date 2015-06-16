@@ -16,8 +16,8 @@
     <maven.compiler.target>1.7</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     
-    <version.w4.client>[9.2.0,)</version.w4.client>
-    <version.w4.common>[9.2.0,)</version.w4.common>
+    <version.w4.client>[9.2.0.0,)</version.w4.client>
+    <version.w4.common>[9.2.0.0,)</version.w4.common>
     
     <version.jms>1.1</version.jms>
     <version.spring>4.1.4.RELEASE</version.spring>
@@ -128,16 +128,19 @@
       <groupId>eu.w4</groupId>
       <artifactId>bpmn-engine-client</artifactId>
       <version>${version.w4.client}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>eu.w4</groupId>
       <artifactId>bpmn-engine-externalmodule-core</artifactId>
       <version>${version.w4.client}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>eu.w4</groupId>
       <artifactId>w4-common-client</artifactId>
       <version>${version.w4.common}</version>
+      <scope>provided</scope>
     </dependency>
     
     <!-- Spring -->

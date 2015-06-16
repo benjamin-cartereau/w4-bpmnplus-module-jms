@@ -51,6 +51,8 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   
   private static final String PROPERTY_JMS_ENDPOINT_PREFIX = "module.jms.endpoint";
   
+  private static final String PROPERTY_JMS_ENDPOINT_BPMN_PREFIX = "bpmn";
+  
   private static final String PROPERTY_JMS_ENDPOINT_BPMN_ACTION = "bpmn.action";
   private static final String PROPERTY_JMS_ENDPOINT_BPMN_DEFINITION = "bpmn.definition_identifier";
   private static final String PROPERTY_JMS_ENDPOINT_BPMN_COLLABORATION = "bpmn.collaboration_identifier";
@@ -160,7 +162,7 @@ public class ApplicationConfig implements JmsListenerConfigurer {
       logger.warn("Action unknown for endpoint " + endpointId + " : only 'instantiate' or 'signal' are allowed. Instantiate will be used.");
     }
     
-    Map<String, ? extends Object> properties = subsetToCamelCase(conf, getEndpointPropertiesPrefix(endpointId), true);
+    Map<String, ? extends Object> properties = subsetToCamelCase(conf, getEndpointBpmnPropertiesPrefix(endpointId), true);
     AbstractW4MessageListener listener = listenerFactory.getListener(action, engineService, login, password, definitionsIdentifier, properties);
 
     // Define the listener
@@ -244,6 +246,20 @@ public class ApplicationConfig implements JmsListenerConfigurer {
     return propertiesPrefix.toString();
   }
 
+    /**
+   * Get endpoint properties prefix realated to bpmn configuration
+   *
+   * @param endpointId id of the endpoint
+   * @return bpmn properties prefix for this endpoint
+   */
+  private String getEndpointBpmnPropertiesPrefix(String endpointId) {
+    StringBuilder bpmnPropPrefix = new StringBuilder();
+    bpmnPropPrefix.append(getEndpointPropertiesPrefix(endpointId));
+    bpmnPropPrefix.append(PROPERTY_SEPARATOR);
+    bpmnPropPrefix.append(PROPERTY_JMS_ENDPOINT_BPMN_PREFIX);
+    return bpmnPropPrefix.toString();
+  }
+  
   /**
    * Get an endpoint property
    *
@@ -341,6 +357,6 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @return transformed text in CamelCase
    */
   private static String fromSnakeToCamelCase(String text) {
-    return StringUtils.remove(WordUtils.capitalizeFully(text, '_'), "_");
+    return StringUtils.uncapitalize(StringUtils.remove(WordUtils.capitalizeFully(text, '_'), "_"));
   }
 }

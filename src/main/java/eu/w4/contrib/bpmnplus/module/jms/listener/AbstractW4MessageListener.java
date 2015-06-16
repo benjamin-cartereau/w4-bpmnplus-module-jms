@@ -69,11 +69,10 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
     }
     
     // Extract data
-    Set<Map.Entry<String, Object>> properties = message.getHeaders().entrySet();
     Map<String, Object> dataEntries = mapPayloadToData(message.getPayload());
     
     // Process W4 action
-    String returnedMessage = processW4Action(properties, dataEntries);
+    String returnedMessage = processW4Action(message.getHeaders(), dataEntries);
     
     return returnedMessage;
   }
@@ -137,7 +136,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
    * @param dataEntries data that should (can) be used by the action
    * @return any message to send back
    */
-  private String processW4Action(Set<Map.Entry<String, Object>> properties, Map<String, Object> dataEntries) {
+  private String processW4Action(Map<String, Object> properties, Map<String, Object> dataEntries) {
     // LOGIN
     Principal principal = login();
     
@@ -165,7 +164,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
    * @param dataEntries data that should (can) be used by the action
    * @return anything to send back to the emitter (null if nothing to return)
    */
-  protected abstract String doProcessW4Action(Principal principal, Set<Map.Entry<String, Object>> properties, Map<String, Object> dataEntries);
+  protected abstract String doProcessW4Action(Principal principal, Map<String, Object> properties, Map<String, Object> dataEntries);
   
   /**
    * Get W4 process engine service

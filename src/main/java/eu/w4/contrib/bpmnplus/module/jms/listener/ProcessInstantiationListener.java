@@ -10,20 +10,16 @@ import java.rmi.RemoteException;
 import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.util.StringUtils;
 
 /**
  *
  */
 public class ProcessInstantiationListener extends AbstractW4MessageListener {
   private final Log logger = LogFactory.getLog(ProcessInstantiationListener.class);
-
-  // Processes instances name prefix
-  public void setProcessIdentifier(ProcessIdentifier processIdentifier) {
-    this.processIdentifier = processIdentifier;
-  }
+  
   private String processInstanceNamePrefix;
 
   // Identifiers names
@@ -35,7 +31,7 @@ public class ProcessInstantiationListener extends AbstractW4MessageListener {
   private ProcessIdentifier processIdentifier;
   
   @Override
-  protected String doProcessW4Action(Principal principal, Set<Map.Entry<String, Object>> properties, Map<String, Object> dataEntries) {
+  protected String doProcessW4Action(Principal principal, Map<String, Object> properties, Map<String, Object> dataEntries) {
     // Info about process to instantiate and passed data entries
     if (logger.isInfoEnabled()) {
       StringBuilder processInfo = new StringBuilder();
@@ -71,7 +67,14 @@ public class ProcessInstantiationListener extends AbstractW4MessageListener {
   public void afterPropertiesSet() throws Exception {
     super.afterPropertiesSet();
     
+    assert StringUtils.isNoneBlank(processIdentifierName) : "Process identifier must be set";
+    
     ObjectFactory factory = engineService.getObjectFactory();
+    
+    this.processIdentifier = factory.newProcessIdentifier();
+    this.processIdentifier.setId(processIdentifierName);
+    this.processIdentifier.setDefinitionsIdentifier(definitionsIdentifier);
+    
     if (StringUtils.isEmpty(collaborationIdentifierName)) {
       this.collaborationIdentifier = null;
     } else {
@@ -79,10 +82,6 @@ public class ProcessInstantiationListener extends AbstractW4MessageListener {
       this.collaborationIdentifier.setId(collaborationIdentifierName);
       this.collaborationIdentifier.setDefinitionsIdentifier(definitionsIdentifier);
     }
-  
-    this.processIdentifier = factory.newProcessIdentifier();
-    this.processIdentifier.setId(processIdentifierName);
-    this.processIdentifier.setDefinitionsIdentifier(definitionsIdentifier);
   }
   
   public void setProcessInstanceNamePrefix(String processInstanceNamePrefix) {
