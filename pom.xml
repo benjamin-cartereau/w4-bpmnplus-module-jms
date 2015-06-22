@@ -24,14 +24,37 @@
     <version.jackson>2.4.3</version.jackson>
     <version.orika>1.4.5</version.orika>
     <version.log4j>2.1</version.log4j>
+    <version.commons.beanutils>1.9.1</version.commons.beanutils>
+    <version.commons.lang3>3.3.2</version.commons.lang3>
+    <version.junit>4.10</version.junit>
+    <version.maven.plugin.jar>2.5</version.maven.plugin.jar>
+    <version.maven.plugin.assembly>2.5.2</version.maven.plugin.assembly>
+    <version.mockito>1.10.19</version.mockito>
   </properties>
 
   <build>
+    
+    <testResources>
+        <testResource>
+            <directory>${project.basedir}/src/main/resources</directory>
+            <includes>
+              <include>appContext.xml</include>
+            </includes>
+        </testResource>
+        <testResource>
+            <directory>${project.basedir}/src/test/resources</directory>
+            <includes>
+              <include>**/*.properties</include>
+              <include>**/*.xml</include>
+            </includes>
+        </testResource>
+    </testResources>
+    
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.5</version>
+        <version>${version.maven.plugin.jar}</version>
         <configuration>
           <!-- Exclude samples files from jar. They will be added in the assembly. -->
           <excludes>
@@ -54,7 +77,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.5.2</version>
+        <version>${version.maven.plugin.assembly}</version>
         <configuration>
           <descriptor>src/assembly/engine-module.xml</descriptor>
         </configuration>
@@ -172,7 +195,22 @@
       <artifactId>orika-core</artifactId>
       <version>${version.orika}</version>
     </dependency>
-                            
+    
+    <!-- Toolbox -->
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>${version.commons.beanutils}</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${version.commons.lang3}</version>
+      <type>jar</type>
+    </dependency>
+    
+    
     <!-- Logging -->
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -186,16 +224,25 @@
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-jcl</artifactId>
     </dependency>
+    
+    <!-- TEST -->
     <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>1.9.1</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${version.junit}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>${version.mockito}</version>
+      <scope>test</scope>
       <type>jar</type>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.3.2</version>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <scope>test</scope>
       <type>jar</type>
     </dependency>
   </dependencies>

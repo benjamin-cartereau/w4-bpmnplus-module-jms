@@ -97,6 +97,7 @@ public class ApplicationConfig implements JmsListenerConfigurer {
      */
     if (conf == null) {
       logger.warn("Configuration file (configuration.properties) is missing");
+      return;
     }
 
     // Check if any endpoint has been defined
@@ -330,6 +331,10 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    */
   public static Map<String, ? extends Object> subsetToCamelCase(Properties properties, String prefix, boolean stripPrefix) {
     Map<String, Object> result = new HashMap<String, Object>();
+    
+    if (properties == null) {
+      return result;
+    }
     
     if (StringUtils.isBlank(prefix)) {
       prefix = StringUtils.EMPTY;

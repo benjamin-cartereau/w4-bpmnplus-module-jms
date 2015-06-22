@@ -232,9 +232,9 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
   public void afterPropertiesSet() throws Exception {
     //Assert.notNull(engineService, "EngineService must be set");
     assert engineService!=null : "EngineService must be set";
-    assert definitionsIdentifierName!=null : "Definitions identifier must be set";
     assert engineLogin!=null : "Login must be set";
     assert enginePassword!=null : "Password must be set";
+    assert definitionsIdentifierName!=null : "Definitions identifier must be set";
     
     try {
       ObjectFactory factory = engineService.getObjectFactory();
