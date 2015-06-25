@@ -9,8 +9,8 @@ import java.net.URLClassLoader;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.env.MapPropertySource;
@@ -22,11 +22,11 @@ import org.springframework.core.env.MapPropertySource;
  * <li>trigger a signal</li></ul>
  */
 public class JMSModule implements ExternalModule {
-    final Log logger = LogFactory.getLog(JMSModule.class);
+    private static final Logger logger = LogManager.getLogger();
     
     public static String PROPERTY_ENGINE_SERVICE = "engineService";
     
-    private static final String SPRING_APPLICATION_CONTEXT = "appContext.xml";
+    private static final String SPRING_APPLICATION_CONTEXT = "JMSModule-context.xml";
     private static final long TIME_BETWEEN_SHUTDOWN_AND_STARTUP = 1000;
     
     private Thread module;
@@ -57,7 +57,7 @@ public class JMSModule implements ExternalModule {
         ClassLoader cl = this.getClass().getClassLoader();
         URL[] urls = ((URLClassLoader) cl).getURLs();
         for (URL url: urls) {
-            logger.debug("   - " + url.getFile());
+            logger.debug("   - {}", url.getFile());
         }
     }
     

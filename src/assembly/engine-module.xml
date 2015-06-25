@@ -14,7 +14,7 @@
     <file>
       <source>${project.build.directory}/${artifactId}-${version}.${packaging}</source>
       <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/lib/module</outputDirectory>-->
-      <outputDirectory>/modules/${project.artifactId}/lib/module</outputDirectory>
+      <outputDirectory>/modules/jms/lib/module</outputDirectory>
       <!-- Remove version from binary name -->
       <destName>${artifact.artifactId}.${packaging}</destName>
     </file>
@@ -23,7 +23,7 @@
     <!-- Put text files in root directory -->
     <fileSet>
       <directory>${project.basedir}</directory>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory>/modules/jms</outputDirectory>
       <includes>
         <include>README*</include>
         <include>LICENSE*</include>
@@ -34,7 +34,7 @@
     <fileSet>
       <directory>${project.basedir}/src/main/resources/samples</directory>
       <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/conf</outputDirectory>-->
-      <outputDirectory>/modules/${project.artifactId}/resources</outputDirectory>
+      <outputDirectory>/modules/jms/resources</outputDirectory>
       <includes>
         <include>*</include>
       </includes>
@@ -44,7 +44,7 @@
     <!-- Put deps in the lb/ext subfolder -->
     <dependencySet>
       <!--<outputDirectory>/modules/${project.artifactId}-${project.version}/lib/ext</outputDirectory>-->
-      <outputDirectory>/modules/${project.artifactId}/lib/ext</outputDirectory>
+      <outputDirectory>/modules/jms/lib/ext</outputDirectory>
       <useProjectArtifact>false</useProjectArtifact>
       <useProjectAttachments>false</useProjectAttachments>
       <unpack>false</unpack>

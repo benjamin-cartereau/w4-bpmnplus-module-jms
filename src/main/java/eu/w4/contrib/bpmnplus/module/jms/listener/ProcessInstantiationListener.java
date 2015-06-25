@@ -9,16 +9,15 @@ import eu.w4.engine.client.service.ObjectFactory;
 import java.rmi.RemoteException;
 import java.security.Principal;
 import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
- *
+ * Message processor that will instantiate W4 process.
  */
 public class ProcessInstantiationListener extends AbstractW4MessageListener {
-  private final Log logger = LogFactory.getLog(ProcessInstantiationListener.class);
+  private static final Logger logger = LogManager.getLogger();
   
   private String processInstanceNamePrefix;
 
@@ -33,12 +32,7 @@ public class ProcessInstantiationListener extends AbstractW4MessageListener {
   @Override
   protected String doProcessW4Action(Principal principal, Map<String, Object> properties, Map<String, Object> dataEntries) {
     // Info about process to instantiate and passed data entries
-    if (logger.isInfoEnabled()) {
-      StringBuilder processInfo = new StringBuilder();
-      processInfo.append("Instantiate process (").append(processIdentifier.getId());
-      processInfo.append(") for data entries:").append(dataEntries.toString());
-      logger.info(processInfo.toString());
-    }
+    logger.info("Instantiate process ({}) for data entries: {}", processIdentifier.getId(), dataEntries.toString());
 
     ProcessInstanceIdentifier processInstanceId = null;
 
@@ -48,9 +42,7 @@ public class ProcessInstantiationListener extends AbstractW4MessageListener {
       // INSTANTIATE the PROCESS
       processInstanceId = getProcessService().instantiateProcess(principal, collaborationIdentifier, processIdentifier, processInstanceNamePrefix, Boolean.TRUE, dataEntries, Boolean.TRUE);
       
-      if (logger.isDebugEnabled()) {
-        logger.debug("Process (" + processInstanceId.getId() + ") instantiated in " + (System.currentTimeMillis() - timeBefore) + "ms");
-      }
+      logger.debug("Process ({}) instantiated in {}ms", processInstanceId.getId(), System.currentTimeMillis() - timeBefore);
     } catch (CheckedException che) {
       logger.error(che.getMessage(), che);
       throw new JMSModuleException(che.getMessage(), che);

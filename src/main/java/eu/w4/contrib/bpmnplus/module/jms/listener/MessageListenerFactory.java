@@ -4,8 +4,8 @@ import eu.w4.contrib.bpmnplus.module.jms.configuration.BpmnAction;
 import eu.w4.engine.client.service.EngineService;
 import java.util.Map;
 import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 /**
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class MessageListenerFactory {
-  private final Log logger = LogFactory.getLog(MessageListenerFactory.class);
+  private static final Logger logger = LogManager.getLogger();
   
   /**
    * Get the appropriate listener
@@ -46,9 +46,8 @@ public class MessageListenerFactory {
     listener.setEnginePassword(enginePassword);
     listener.setDefinitionsIdentifier(definitionsIdentifier);
     
-    if (logger.isDebugEnabled()) {
-      logger.debug("Listener properties : "+properties);
-    }
+    logger.debug("Listener properties : {}", properties);
+    
     BeanUtils.populate(listener, properties);
     
     listener.afterPropertiesSet();

@@ -8,15 +8,15 @@ import java.rmi.RemoteException;
 import java.security.Principal;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
- *
+ * Message processor that will trigger a BPMN signal.
  */
 public class SignalTriggeringListener extends AbstractW4MessageListener {
 
-  private final Log logger = LogFactory.getLog(SignalTriggeringListener.class);
+  private static final Logger logger = LogManager.getLogger();
 
   // Property (message header) used to get dynamic message name
   private static final String PROPERTY_SIGNAL_NAME = "SignalName";
@@ -45,9 +45,7 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
     }
     
     // Info about process to instantiate and passed data entries
-    if (logger.isInfoEnabled()) {
-      logger.info("Trigger signal (" + signalIdentifier.getId() + "/" + signalName + ") with payload:" + dataEntries);
-    }
+    logger.info("Trigger signal ({}/{}) with payload: {}", signalIdentifier.getId(), signalName, dataEntries);
     
     // Get 1st dataEntry if any
     Object payload = null;
@@ -60,9 +58,7 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
       
       engineService.getEventService().triggerSignal(principal, signalIdentifier, signalName, payload);
       
-      if (logger.isDebugEnabled()) {
-        logger.debug("Signal triggered in " + (System.currentTimeMillis() - timeBefore) + "ms");
-      }
+      logger.debug("Signal triggered in {}ms", System.currentTimeMillis() - timeBefore);
     } catch (CheckedException cex) {
       logger.error(cex.getMessage(), cex);
     } catch (RemoteException rex) {
@@ -78,9 +74,7 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
     
     assert StringUtils.isNoneBlank(signalId) : "Signal id must be set";
     
-    if (logger.isDebugEnabled()) {
-      logger.debug("signalId="+signalId+"-defaultSignalName="+defaultSignalName);
-    }
+    logger.debug("signalId={}-defaultSignalName={}", signalId, defaultSignalName);
     
     ObjectFactory factory = engineService.getObjectFactory();
     this.signalIdentifier = factory.newSignalIdentifier();

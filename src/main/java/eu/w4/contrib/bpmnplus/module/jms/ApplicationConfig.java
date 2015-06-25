@@ -1,6 +1,7 @@
 package eu.w4.contrib.bpmnplus.module.jms;
 
 import eu.w4.contrib.bpmnplus.module.jms.configuration.BpmnAction;
+import eu.w4.contrib.bpmnplus.module.jms.exception.JMSModuleException;
 import eu.w4.contrib.bpmnplus.module.jms.listener.AbstractW4MessageListener;
 import eu.w4.contrib.bpmnplus.module.jms.listener.MessageListenerFactory;
 import eu.w4.engine.client.service.EngineService;
@@ -12,11 +13,12 @@ import javax.annotation.Resource;
 import javax.jms.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.annotation.JmsListenerConfigurer;
 import org.springframework.jms.config.JmsListenerEndpoint;
 import org.springframework.jms.config.JmsListenerEndpointRegistrar;
@@ -31,18 +33,16 @@ import org.springframework.util.ReflectionUtils;
 /**
  * Declaration and dynamic configuration of JMS listeners
  */
-//@EnableJms
+@EnableJms
 @Configuration
 //@PropertySource(value = "classpath:configuration.properties", ignoreResourceNotFound = true)
 public class ApplicationConfig implements JmsListenerConfigurer {
   
-  private final Log logger = LogFactory.getLog(ApplicationConfig.class);
+  private static final Logger logger = LogManager.getLogger();
 
   // Properties names in JMS messages
   // - Fully qualified class name of the DTO
   private static final String JMS_PROPERTY_DTO_CLASSNAME = "ClassName";
-  // - Signal name
-  private static final String JMS_PROPERTY_SIGNAL_NAME = "SignalName";
 
   // Configuration file properties names
   private static final String PROPERTY_JMS_ENDPOINTS = "module.jms.endpoints";
@@ -55,14 +55,6 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   
   private static final String PROPERTY_JMS_ENDPOINT_BPMN_ACTION = "bpmn.action";
   private static final String PROPERTY_JMS_ENDPOINT_BPMN_DEFINITION = "bpmn.definition_identifier";
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_COLLABORATION = "bpmn.collaboration_identifier";
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_PROCESS = "bpmn.process_identifier";
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_SIGNAL_ID = "bpmn.signal_identifier";
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_SIGNAL_NAME = "bpmn.signal_name";
-  
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_NAME_PREFIX = "bpmn.process_instance_name_prefix";
-  
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_DATAENTRY = "bpmn.data_entry_id";
   private static final String PROPERTY_JMS_ENDPOINT_MAPPING = "mapping";
   
   private static final String PROPERTY_JMS_ENDPOINT_PASSWORD = "principal.password";
@@ -72,10 +64,15 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   private static final String MAPPING_NONE = "none";
   private static final String MAPPING_JSON = "json";
   
+  private static final char PROPERTY_KEY_CASE_SEPARATOR = '_';
   private static final String PROPERTY_SEPARATOR = ".";
   private static final String SEPARATOR_COMMA = "\\s*,\\s*";
   
+  private static final String MESSAGE_HANDLE_METHOD_NAME = "handle";
+  
   private final DefaultMessageHandlerMethodFactory methodFactory = new DefaultMessageHandlerMethodFactory();
+  
+  private boolean ignoreErroneousEndpoint = true;
   
   @Autowired
   Environment env;
@@ -96,14 +93,14 @@ public class ApplicationConfig implements JmsListenerConfigurer {
      By default, we look up for a bean named jmsListenerContainerFactory.
      */
     if (conf == null) {
-      logger.warn("Configuration file (configuration.properties) is missing");
+      logger.warn("Configuration file ('configuration.properties') is missing.");
       return;
     }
 
     // Check if any endpoint has been defined
     String endpointsStr = StringUtils.trim(conf.getProperty(PROPERTY_JMS_ENDPOINTS));
     if (StringUtils.isEmpty(endpointsStr)) {
-      logger.warn("No endpoint has been defined");
+      logger.warn("No endpoint has been defined.");
       return;
     }
 
@@ -119,8 +116,16 @@ public class ApplicationConfig implements JmsListenerConfigurer {
       try {
         endpoint = configureEndpoint(endpointId, defaultLogin, defaultPassword);
       } catch (Exception ex) {
-        logger.error("Failed to configure endpoint '" + endpointId + "'", ex);
-        continue;
+        StringBuilder errorMessage = new StringBuilder();
+        errorMessage.append("Failed to configure endpoint '").append(endpointId).append("'.");
+        if (ignoreErroneousEndpoint) {
+          errorMessage.append(" Go to the next one.");
+          logger.warn(errorMessage.toString(), ex);
+          continue;
+        }
+        else {
+          throw new JMSModuleException(errorMessage.toString(), ex);
+        }
       }
       // The default registrar is already populated with the container factory
       //  bean named "jmsListenerContainerFactory" by default
@@ -160,7 +165,17 @@ public class ApplicationConfig implements JmsListenerConfigurer {
     try {
       action = BpmnAction.parse(actionAsString);
     } catch (IllegalArgumentException wrongArgument) {
-      logger.warn("Action unknown for endpoint " + endpointId + " : only 'instantiate' or 'signal' are allowed. Instantiate will be used.");
+      
+      StringBuilder errorMessage = new StringBuilder();
+      errorMessage.append("Action ('").append(actionAsString).append("') unknown for endpoint '");
+      errorMessage.append(endpointId).append(" : only 'instantiate' or 'signal' are allowed.");
+      if (ignoreErroneousEndpoint) {
+        errorMessage.append(" Instantiate will be used.");
+        logger.warn(errorMessage.toString());
+      }
+      else {
+        throw new IllegalArgumentException(errorMessage.toString());
+      }
     }
     
     Map<String, ? extends Object> properties = subsetToCamelCase(conf, getEndpointBpmnPropertiesPrefix(endpointId), true);
@@ -192,7 +207,16 @@ public class ApplicationConfig implements JmsListenerConfigurer {
       converter.setTypeIdPropertyName(JMS_PROPERTY_DTO_CLASSNAME);
       listener.setMessageConverter(converter);
     } else if (mapping != null && !MAPPING_NONE.equalsIgnoreCase(mapping)) {
-      logger.warn("Mapping type unknown for endpoint " + endpointId + " : only 'none' or 'json' are allowed.");
+      StringBuilder errorMessage = new StringBuilder();
+      errorMessage.append("Mapping type ('").append(mapping);
+      errorMessage.append("') unknown for endpoint ").append(endpointId).append(" : only 'none' or 'json' are allowed.");
+      if (ignoreErroneousEndpoint) {
+        errorMessage.append(" None mapping will be used.");
+        logger.warn(errorMessage.toString());
+      }
+      else {
+        throw new IllegalArgumentException(errorMessage.toString());
+      }
     }
   }
 
@@ -294,6 +318,33 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   }
 
   /**
+   * Initialize message handler method factory
+   * @param factory DefaultMessageHandlerMethodFactory
+   */
+  private void initializeFactory(DefaultMessageHandlerMethodFactory factory) {
+    //factory.setBeanFactory(new StaticListableBeanFactory());
+    factory.afterPropertiesSet();
+  }
+  
+  /**
+   * Get the handle method that deals with JMS messages
+   * @return Method the handle method
+   */
+  private Method getHandleMethod() {
+    return ReflectionUtils.findMethod(AbstractW4MessageListener.class, MESSAGE_HANDLE_METHOD_NAME, Message.class, 
+            Session.class, javax.jms.Message.class);
+  }
+
+  /**
+   * Should erroneous endpoint configuration be ignored?
+   * @param ignore true to ignore erroneous endpoint, false otherwise.
+   */
+  public void setIgnoreErroneousEndpoint(boolean ignore) {
+    this.ignoreErroneousEndpoint = ignore;
+  }
+  
+  
+  /**
    * Get a required property
    *
    * @param properties Properties
@@ -303,20 +354,11 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   private static String getRequiredProperty(Properties properties, String key) {
     String value = properties.getProperty(key);
     if (value == null) {
-      throw new IllegalStateException(String.format("required key '[%s]' not found", key));
+      throw new IllegalStateException(String.format("Required key '%s' not found", key));
     }
     return value;
   }
   
-  private void initializeFactory(DefaultMessageHandlerMethodFactory factory) {
-    //TODO??? factory.setBeanFactory(new StaticListableBeanFactory());
-    factory.afterPropertiesSet();
-  }
-  
-  private Method getHandleMethod() {
-    return ReflectionUtils.findMethod(AbstractW4MessageListener.class, "handle", Message.class, Session.class, javax.jms.Message.class);
-  }
-
   /**
    * Creates a map from the original properties, by copying those properties
    * that have specified first part of the key name. Prefix may be optionally
@@ -362,6 +404,8 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @return transformed text in CamelCase
    */
   private static String fromSnakeToCamelCase(String text) {
-    return StringUtils.uncapitalize(StringUtils.remove(WordUtils.capitalizeFully(text, '_'), "_"));
+    return StringUtils.uncapitalize(StringUtils.remove(
+            WordUtils.capitalizeFully(text, PROPERTY_KEY_CASE_SEPARATOR), PROPERTY_KEY_CASE_SEPARATOR)
+    );
   }
 }

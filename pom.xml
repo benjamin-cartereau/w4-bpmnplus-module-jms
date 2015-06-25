@@ -38,7 +38,7 @@
         <testResource>
             <directory>${project.basedir}/src/main/resources</directory>
             <includes>
-              <include>appContext.xml</include>
+              <include>*-context.xml</include>
             </includes>
         </testResource>
         <testResource>
@@ -64,6 +64,8 @@
             <!-- Remove versions numbers from external libs names -->
             <manifest>
               <addClasspath>true</addClasspath>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
               <classpathLayoutType>custom</classpathLayoutType>
               <customClasspathLayout>${artifact.artifactId}${artifact.dashClassifier?}.${artifact.extension}</customClasspathLayout>
             </manifest>

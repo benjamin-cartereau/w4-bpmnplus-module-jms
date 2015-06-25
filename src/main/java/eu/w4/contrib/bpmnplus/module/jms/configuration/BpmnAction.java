@@ -1,7 +1,7 @@
 package eu.w4.contrib.bpmnplus.module.jms.configuration;
 
 /**
- * List of actions
+ * List of allowed W4 BPMN actions
  */
 public enum BpmnAction {
 

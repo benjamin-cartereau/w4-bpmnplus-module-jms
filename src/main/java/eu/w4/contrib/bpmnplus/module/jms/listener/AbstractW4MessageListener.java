@@ -10,7 +10,6 @@ import java.rmi.RemoteException;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import javax.jms.Session;
 import javax.jms.StreamMessage;
 import ma.glasnost.orika.BoundMapperFacade;
@@ -19,18 +18,18 @@ import ma.glasnost.orika.impl.DefaultMapperFactory;
 import ma.glasnost.orika.metadata.Type;
 import ma.glasnost.orika.metadata.TypeBuilder;
 import ma.glasnost.orika.metadata.TypeFactory;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.messaging.Message;
 
 /**
- * Abstract JMS Message Listener for W4. 
+ * Abstract JMS messages listener and processor for W4. 
  * Should be thread safe.
  */
 public abstract class AbstractW4MessageListener implements InitializingBean {
 
-  private final Log logger = LogFactory.getLog(AbstractW4MessageListener.class);
+  private static final Logger logger = LogManager.getLogger();
 
   // Service to communicate with W4 BPMN+ engine
   protected EngineService engineService;
@@ -62,11 +61,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
       throw new IllegalArgumentException("Message payload type cannot be processed by this listener (" + message.getPayload().getClass().getName()+")");
     }
     
-    if (logger.isDebugEnabled()) {
-      StringBuilder messageText = new StringBuilder();
-      messageText.append("Received message: ").append(message.getPayload().toString());
-      logger.debug(messageText.toString());
-    }
+    logger.debug("Received message: {}", message.getPayload().toString());
     
     // Extract data
     Map<String, Object> dataEntries = mapPayloadToData(message.getPayload());
@@ -145,9 +140,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
     // PROCESS
     String returnedMessage = doProcessW4Action(principal, properties, dataEntries);
     
-    if (logger.isDebugEnabled()) {
-      logger.debug("Message processed in " + (System.currentTimeMillis() - timeBefore) + "ms");
-    }
+    logger.debug("Message processed in {}ms", System.currentTimeMillis() - timeBefore);
     
     // LOGOUT
     logout(principal);
