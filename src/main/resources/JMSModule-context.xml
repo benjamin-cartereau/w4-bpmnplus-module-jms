@@ -12,25 +12,25 @@
             http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
             http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd">
     
-    <context:component-scan base-package="eu.w4.contrib.bpmnplus.module.jms" />
+  <context:component-scan base-package="eu.w4.contrib.bpmnplus.module.jms" />
     
-    <!-- JMS annotation driven (Spring 4.1) -->
-    <!--jms:annotation-driven/-->
+  <!-- JMS annotation driven (Spring 4.1) -->
+  <!--jms:annotation-driven/-->
     
-    <!-- JMS properties -->
-    <context:property-placeholder location="classpath:jms.properties" />
+  <!-- JMS properties -->
+  <context:property-placeholder location="classpath:jms.properties" />
     
-    <!-- JNDI properties-->
-    <util:properties id="jndiProperties" location="classpath:jndi.properties"/>
+  <!-- JNDI properties-->
+  <util:properties id="jndiProperties" location="classpath:jndi.properties"/>
     
-    <!-- Module configuration -->
-    <bean id="configurationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean"
+  <!-- Module configuration -->
+  <bean id="configurationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean"
           p:location="classpath:/configuration.properties"
           p:ignoreResourceNotFound="true" />
     
-    <!-- JNDI lookup of connection fatory -->
-    <!-- =================================== -->
-    <jee:jndi-lookup id="jmsConnectionFactory"
+  <!-- JNDI lookup of connection fatory -->
+  <!-- =================================== -->
+  <jee:jndi-lookup id="jmsConnectionFactory"
                      jndi-name="${jms.connection.factory.name}"
                      cache="false"
                      lookup-on-startup="false"
@@ -38,36 +38,32 @@
                      environment-ref="jndiProperties" />
     
 
-    <!-- JMS Broker connections cache -->
-    <!--  NB : about cacheConsumers : https://stackoverflow.com/questions/27022181/prevent-use-of-cachingconnectionfactory-with-defaultjmslistenercontainerfactory -->
-    <bean id="cachedConnectionFactory" 
+  <!-- JMS Broker connections cache -->
+  <!--  NB : about cacheConsumers : https://stackoverflow.com/questions/27022181/prevent-use-of-cachingconnectionfactory-with-defaultjmslistenercontainerfactory -->
+  <bean id="cachedConnectionFactory" 
           class="org.springframework.jms.connection.CachingConnectionFactory"
-        p:targetConnectionFactory-ref="jmsConnectionFactory"
-        p:cacheConsumers="false"
-        p:sessionCacheSize="3" />
+          p:targetConnectionFactory-ref="jmsConnectionFactory"
+          p:cacheConsumers="false"
+          p:sessionCacheSize="3" />
     
-    <!-- Messages destinations resolver -->
-    <!-- ============================== -->
-    <bean id="jndiTemplate" class="org.springframework.jndi.JndiTemplate"
-        p:environment-ref="jndiProperties" />
-    <bean id="jndiDestinationResolver" class="org.springframework.jms.support.destination.JndiDestinationResolver"
-        p:jndiTemplate-ref="jndiTemplate"
-        p:cache="true" />
+  <!-- Messages destinations resolver -->
+  <!-- ============================== -->
+  <bean id="jndiTemplate" class="org.springframework.jndi.JndiTemplate"
+          p:environment-ref="jndiProperties" />
+  <bean id="jndiDestinationResolver" class="org.springframework.jms.support.destination.JndiDestinationResolver"
+          p:jndiTemplate-ref="jndiTemplate"
+          p:cache="true" />
     
-    <!-- Define an exponential BackOff to retry broker connection -->
-    <!-- Notes: -->
-    <!-- - DEFAULT_INITIAL_INTERVAL=2000L -> 2s -->
-    <!-- - DEFAULT_MULTIPLIER=1.5 -->
-    <!-- - DEFAULT_MAX_ELAPSED_TIME=9223372036854775807L -->
-    <!-- - DEFAULT_MAX_INTERVAL=30000L -> 30s -->
-        <bean id="exponentialBackOff" class="org.springframework.util.backoff.ExponentialBackOff">
-            <constructor-arg name="initialInterval" value="2000"/>
-            <constructor-arg name="multiplier" value="1.5"/>
-        </bean>
+  <!-- Define an exponential BackOff to retry broker connection -->
+  <bean id="exponentialBackOff" class="org.springframework.util.backoff.ExponentialBackOff">
+    <constructor-arg name="initialInterval" value="2000"/>
+    <constructor-arg name="multiplier" value="1.5"/>
+  </bean>
     
-    <!-- JMS Listener container factory -->
-    <bean id="jmsListenerContainerFactory"
-          class="org.springframework.jms.config.DefaultJmsListenerContainerFactory" 
+  <!-- JMS Listener container factory -->
+  <!--org.springframework.jms.config.DefaultJmsListenerContainerFactory-->
+  <bean id="jmsListenerContainerFactory"
+          class="eu.w4.contrib.bpmnplus.module.jms.listener.jmx.DefaultJmsListenerContainerFactory" 
           p:sessionAcknowledgeMode="#{T(javax.jms.Session).CLIENT_ACKNOWLEDGE}"
           p:connectionFactory-ref="cachedConnectionFactory"
           p:destinationResolver-ref="jndiDestinationResolver"
@@ -75,19 +71,15 @@
           p:backOff-ref="exponentialBackOff"
           p:receiveTimeout="1000" />
     
+    
     <!-- Activate JMX and reuse existing MBeanServer -->
     <bean id="mbeanServer" class="org.springframework.jmx.support.MBeanServerFactoryBean">
         <property name="locateExistingServerIfPossible" value="true"/>
     </bean>
-    
-    <!-- Expose container factory through JMX -->
-    <bean id="jmxExporter" class="org.springframework.jmx.export.MBeanExporter">
-        <property name="server" ref="mbeanServer"/>
-        <property name="beans">
-            <map>
-                <entry key="eu.w4.moduleJMS:name=jmsListenerContainerFactory" value-ref="jmsListenerContainerFactory"/>
-            </map>
-        </property>
-
-   </bean>
+   <bean id="mbeanExporter" class="org.springframework.jmx.export.MBeanExporter"
+        p:server-ref="mbeanServer"
+        p:namingStrategy-ref="namingStrategy" />
+   <bean id="namingStrategy"
+        class="org.springframework.jmx.export.naming.IdentityNamingStrategy"/>
+   
 </beans>
