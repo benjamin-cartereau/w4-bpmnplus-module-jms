@@ -80,6 +80,6 @@
         p:server-ref="mbeanServer"
         p:namingStrategy-ref="namingStrategy" />
    <bean id="namingStrategy"
-        class="org.springframework.jmx.export.naming.IdentityNamingStrategy"/>
+        class="eu.w4.contrib.bpmnplus.module.jms.listener.jmx.JmsListenerContainerNamingStrategy"/>
    
 </beans>
