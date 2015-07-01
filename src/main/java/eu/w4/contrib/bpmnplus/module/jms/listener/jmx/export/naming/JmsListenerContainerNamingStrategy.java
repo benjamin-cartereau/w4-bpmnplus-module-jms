@@ -1,4 +1,4 @@
-package eu.w4.contrib.bpmnplus.module.jms.listener.jmx;
+package eu.w4.contrib.bpmnplus.module.jms.listener.jmx.export.naming;
 
 import java.util.Hashtable;
 import javax.management.MalformedObjectNameException;
@@ -11,11 +11,13 @@ import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * JmsListenerContainerNamingStrategy
- * TODO : limit operations -> setConcurrency / maxConcurrency
+ * Subclass of {@code IdentityNamingStrategy} that builds a custom object name
+ *  for all registered {@code DefaultMessageListenerContainer}.
  */
 public class JmsListenerContainerNamingStrategy extends IdentityNamingStrategy {
-
+  private static final String SELECTOR_KEY = "selector";
+  private static final String DESTINATION_KEY = "destination";
+  
   private static final String MESSAGE_LISTENER_CONTAINERS_DEFAULT_DOMAIN = "eu.w4.contrib.bpmnplus.module.jms";
 
   private static final String DOUBLE_QUOTES = "\"";
@@ -33,11 +35,11 @@ public class JmsListenerContainerNamingStrategy extends IdentityNamingStrategy {
       keys.put(TYPE_KEY, ClassUtils.getShortName(managedBean.getClass()));
       
       // Add destination...
-      keys.put("destination", container.getDestinationName());
+      keys.put(DESTINATION_KEY, container.getDestinationName());
       
       // ... and selector to distinguish them
       if (!StringUtils.isEmpty(container.getMessageSelector())) {
-        keys.put("selector", escapeSelector(container.getMessageSelector()));
+        keys.put(SELECTOR_KEY, escapeSelector(container.getMessageSelector()));
       }
       name = ObjectNameManager.getInstance(domain, keys);
     } else {
@@ -54,7 +56,7 @@ public class JmsListenerContainerNamingStrategy extends IdentityNamingStrategy {
    * See also the method {@link javax.jms.Message}.
    */
   private String escapeSelector(String selector) {
-    StringBuilder escapedSelector = new StringBuilder(selector + 2);
+    StringBuilder escapedSelector = new StringBuilder(selector.length() + 2);
     if (selector.startsWith(DOUBLE_QUOTES) && selector.endsWith(DOUBLE_QUOTES)) {
       escapedSelector.append(selector);
     }
