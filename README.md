@@ -63,11 +63,12 @@ Into the file "configuration.properties" endpoints should be configured as follo
   - module.jms.endpoint.[endpoint id].bpmn.process_identifier : id of the process to instantiate
   - module.jms.endpoint.[endpoint id].bpmn.collaboration_identifier (non mandatory) : to set if the process is part of a collaboration process
   - module.jms.endpoint.[endpoint id].bpmn.process_instance_name_prefix (non mandatory) : should the process instances names have a prefix
-  If chosen action is "signal", following properties should be checked :
+  
+  *If chosen action is "signal", following properties should be checked :*
   - module.jms.endpoint.[endpoint id].bpmn.signal_identifier : id of the signal (declared in menu BPMN>Signals) to trigger (id can be found in bpmn file)
   - module.jms.endpoint.[endpoint id].bpmn.signal_name (non mandatory) : if set this static name should be used. In any case, if a "SignalName" property is attached to the JMS message, it will be used.
   
-  - module.jms.endpoint.[endpoint id].mapping : "none" (default) or "json". *Make it possible to pass an object serialized as JSON (TextMessage) and automatically process the mapping before setting the data entry value.*
+  - module.jms.endpoint.[endpoint id].mapping* : "none" (default) or "json". *Make it possible to pass an object serialized as JSON (TextMessage) and automatically process the mapping before setting the data entry value.*
 
 \* To be able to process the mapping (string->object), the module need 2 things:
  - The fully qualified class name of the object : it should be specified by the message sender through the JMS property named "ClassName"
