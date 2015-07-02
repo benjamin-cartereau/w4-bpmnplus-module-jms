@@ -58,6 +58,7 @@ Into the file "configuration.properties" endpoints should be configured as follo
   - module.jms.endpoint.[endpoint id].bpmn.action : "signal" or "instantiate" (default). Action to process : trigger a signal or instantiate a process.
   - module.jms.endpoint.[endpoint id].bpmn.definition_identifier : id of the process definition
   - module.jms.endpoint.[endpoint id].bpmn.data_entry_id : id of the data entry to set. The data entry's type can be string or XSD.
+  - module.jms.endpoint.[endpoint id].mapping* : "none" (default) or "json". *Make it possible to pass an object serialized as JSON (TextMessage) and automatically process the mapping before setting the data entry value.*
   
   *If chosen action is "instantiate" (default), following properties should be checked :*
   - module.jms.endpoint.[endpoint id].bpmn.process_identifier : id of the process to instantiate
@@ -67,8 +68,6 @@ Into the file "configuration.properties" endpoints should be configured as follo
   *If chosen action is "signal", following properties should be checked :*
   - module.jms.endpoint.[endpoint id].bpmn.signal_identifier : id of the signal (declared in menu BPMN>Signals) to trigger (id can be found in bpmn file)
   - module.jms.endpoint.[endpoint id].bpmn.signal_name (non mandatory) : if set this static name should be used. In any case, if a "SignalName" property is attached to the JMS message, it will be used.
-  
-  - module.jms.endpoint.[endpoint id].mapping* : "none" (default) or "json". *Make it possible to pass an object serialized as JSON (TextMessage) and automatically process the mapping before setting the data entry value.*
 
 \* To be able to process the mapping (string->object), the module need 2 things:
  - The fully qualified class name of the object : it should be specified by the message sender through the JMS property named "ClassName"
