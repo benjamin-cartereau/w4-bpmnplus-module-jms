@@ -69,11 +69,6 @@
               <classpathLayoutType>custom</classpathLayoutType>
               <customClasspathLayout>${artifact.artifactId}${artifact.dashClassifier?}.${artifact.extension}</customClasspathLayout>
             </manifest>
-            <!-- Add conf directory to the ClassPath -->
-            <!--
-            <manifestEntries>
-              <Class-Path>../../conf/</Class-Path>
-            </manifestEntries>-->
           </archive>
         </configuration>
       </plugin>
