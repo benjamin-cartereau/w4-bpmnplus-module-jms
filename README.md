@@ -4,9 +4,9 @@ JMS module for W4 BPMN+
 Summary
 -------
 
-This is a JMS module implementation for W4 BPMN+ (9.2+) that allows to instantiate a process when receiving a JMS message.
+This is a JMS module implementation for W4 BPMN+ (9.2+) that allows to interact with processes when receiving a JMS message.
 Several endpoints (destination and selector) can be configured. 
-For each one a process definition (to instantiate) can be associated or a signal can be triggered.
+For each one a process definition to instantiate can be associated or a signal can be triggered.
 
 
 Download
