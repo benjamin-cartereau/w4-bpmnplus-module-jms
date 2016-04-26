@@ -43,6 +43,11 @@ public class JMSModule implements ExternalModule {
         
         if (logger.isDebugEnabled()) debugModuleClasspath();
         
+        // Wait for the engine to be completely started
+        logger.debug("Wait for the engine to be completely started...");
+        emc.getEngineService().waitForStartup();
+        logger.debug("...engine started.");
+        
         // Spring JMS Thread having its own ContextClassLoader mapped on the current ClassLoader
         module = new SpringJMSThread(emc.getEngineService());
         module.setContextClassLoader(this.getClass().getClassLoader());
