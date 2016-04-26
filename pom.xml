@@ -5,7 +5,7 @@
 
   <groupId>eu.w4.contrib</groupId>
   <artifactId>bpmnplus-module-jms</artifactId>
-  <version>1.3.0-SNAPSHOT</version>
+  <version>1.2.1</version>
   <packaging>jar</packaging>
   <name>BPMN+ JMS Module</name>
   <description>A JMS module listening to messages and interacting with BPMN+ Engine</description>
