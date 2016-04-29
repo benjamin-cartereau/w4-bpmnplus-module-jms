@@ -4,23 +4,21 @@ import eu.w4.contrib.bpmnplus.module.jms.configuration.BpmnAction;
 import eu.w4.contrib.bpmnplus.module.jms.exception.JMSModuleException;
 import eu.w4.contrib.bpmnplus.module.jms.listener.AbstractW4MessageListener;
 import eu.w4.contrib.bpmnplus.module.jms.listener.MessageListenerFactory;
-import eu.w4.engine.client.service.EngineService;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import javax.annotation.Resource;
+import javax.inject.Inject;
 import javax.jms.Session;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.jms.annotation.EnableJms;
 import org.springframework.jms.annotation.JmsListenerConfigurer;
-import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.config.JmsListenerEndpoint;
 import org.springframework.jms.config.JmsListenerEndpointRegistrar;
 import org.springframework.jms.config.SimpleJmsListenerEndpoint;
@@ -29,6 +27,7 @@ import org.springframework.jms.listener.adapter.MessagingMessageListenerAdapter;
 import org.springframework.jms.support.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
+import org.springframework.messaging.handler.invocation.InvocableHandlerMethod;
 import org.springframework.util.ReflectionUtils;
 
 /**
@@ -46,22 +45,21 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   private static final String JMS_PROPERTY_DTO_CLASSNAME = "ClassName";
 
   // Configuration file properties names
-  private static final String PROPERTY_JMS_ENDPOINTS = "module.jms.endpoints";
-  private static final String PROPERTY_JMS_LOGIN = "module.jms.principal.login";
-  private static final String PROPERTY_JMS_PASSWORD = "module.jms.principal.password";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINTS = "module.jms.endpoints";
+  private static final String CONFIGURATION_KEY_JMS_LOGIN = "module.jms.principal.login";
+  private static final String CONFIGURATION_KEY_JMS_PASSWORD = "module.jms.principal.password";
   
-  private static final String PROPERTY_JMS_ENDPOINT_PREFIX = "module.jms.endpoint";
+  //private static final String PROPERTY_JMS_ENDPOINT_PREFIX = "module.jms.endpoint";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_DESTINATION = "module.jms.endpoint.%s.destination";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_SELECTOR = "module.jms.endpoint.%s.selector";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_LOGIN = "module.jms.endpoint.%s.principal.login";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_PASSWORD = "module.jms.endpoint.%s.principal.password";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_MAPPING = "module.jms.endpoint.%s.mapping";
   
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_PREFIX = "bpmn";
-  
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_ACTION = "bpmn.action";
-  private static final String PROPERTY_JMS_ENDPOINT_BPMN_DEFINITION = "bpmn.definition_identifier";
-  private static final String PROPERTY_JMS_ENDPOINT_MAPPING = "mapping";
-  
-  private static final String PROPERTY_JMS_ENDPOINT_PASSWORD = "principal.password";
-  private static final String PROPERTY_JMS_ENDPOINT_LOGIN = "principal.login";
-  private static final String PROPERTY_JMS_ENDPOINT_SELECTOR = "selector";
-  private static final String PROPERTY_JMS_ENDPOINT_DESTINATION = "destination";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_BPMN_PREFIX = "module.jms.endpoint.%s.bpmn";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_BPMN_ACTION = "module.jms.endpoint.%s.bpmn.action";
+  private static final String CONFIGURATION_KEY_JMS_ENDPOINT_BPMN_DEFINITION = "module.jms.endpoint.%s.bpmn.definition_identifier";
+
   private static final String MAPPING_NONE = "none";
   private static final String MAPPING_JSON = "json";
   
@@ -75,13 +73,10 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   
   private boolean ignoreErroneousEndpoint = true;
   
-  @Autowired
-  Environment env;
-  
   @Resource(name = "configurationProperties")
-  Properties conf;
+  Properties configuration;
   
-  @Autowired
+  @Inject
   MessageListenerFactory listenerFactory;
   
   @Override
@@ -93,13 +88,13 @@ public class ApplicationConfig implements JmsListenerConfigurer {
      be omitted if a default one has either been set or discovered. 
      By default, we look up for a bean named jmsListenerContainerFactory.
      */
-    if (conf == null) {
+    if (configuration == null) {
       logger.warn("Configuration file ('configuration.properties') is missing.");
       return;
     }
 
     // Check if any endpoint has been defined
-    String endpointsStr = StringUtils.trim(conf.getProperty(PROPERTY_JMS_ENDPOINTS));
+    String endpointsStr = StringUtils.trim(configuration.getProperty(CONFIGURATION_KEY_JMS_ENDPOINTS));
     if (StringUtils.isEmpty(endpointsStr)) {
       logger.warn("No endpoint has been defined.");
       return;
@@ -108,8 +103,8 @@ public class ApplicationConfig implements JmsListenerConfigurer {
     // Parse endpoints ids
     String[] endpoints = stringAsArray(endpointsStr);
     
-    String defaultLogin = conf.getProperty(PROPERTY_JMS_LOGIN);
-    String defaultPassword = conf.getProperty(PROPERTY_JMS_PASSWORD);
+    String defaultLogin = configuration.getProperty(CONFIGURATION_KEY_JMS_LOGIN);
+    String defaultPassword = configuration.getProperty(CONFIGURATION_KEY_JMS_PASSWORD);
 
     // Configure each endpoint
     for (String endpointId : endpoints) {
@@ -147,21 +142,20 @@ public class ApplicationConfig implements JmsListenerConfigurer {
     // Define the endpoint
     SimpleJmsListenerEndpoint endpoint = new SimpleJmsListenerEndpoint();
     endpoint.setId(endpointId);
-    endpoint.setDestination(getRequiredEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_DESTINATION));
+    endpoint.setDestination(getRequiredEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_DESTINATION));
     
-    String selector = getEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_SELECTOR);
+    String selector = getEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_SELECTOR);
     if (!StringUtils.isEmpty(selector)) {
       endpoint.setSelector(selector);
     }
 
     // Define the receiver
     //DefltMessageListener receiver = new DefaultMessageListener();
-    EngineService engineService = env.getProperty(JMSModule.PROPERTY_ENGINE_SERVICE, EngineService.class);
-    String login = getEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_LOGIN, defaultLogin);
-    String password = getEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_PASSWORD, defaultPassword);
-    String definitionsIdentifier = getRequiredEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_BPMN_DEFINITION);
+    String login = getEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_LOGIN, defaultLogin);
+    String password = getEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_PASSWORD, defaultPassword);
+    String definitionsIdentifier = getRequiredEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_BPMN_DEFINITION);
     
-    String actionAsString = getEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_BPMN_ACTION);
+    String actionAsString = getEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_BPMN_ACTION);
     BpmnAction action = BpmnAction.INSTANTIATE;
     try {
       action = BpmnAction.parse(actionAsString);
@@ -179,12 +173,12 @@ public class ApplicationConfig implements JmsListenerConfigurer {
       }
     }
     
-    Map<String, ? extends Object> properties = subsetToCamelCase(conf, getEndpointBpmnPropertiesPrefix(endpointId), true);
-    AbstractW4MessageListener listener = listenerFactory.getListener(action, engineService, login, password, definitionsIdentifier, properties);
+    Map<String, ? extends Object> listenerProperties = subsetToCamelCase(configuration, getEndpointBpmnPropertiesPrefix(endpointId), true);
+    AbstractW4MessageListener listener = listenerFactory.getListener(action, login, password, definitionsIdentifier, listenerProperties);
 
     // Define the listener
     //MessageListenerAdapter listener = new MessageListenerAdapter(receiver);
-    MessagingMessageListenerAdapter listenerAdapter = new MessagingMessageListenerAdapter();
+    MessagingMessageListenerAdapter listenerAdapter = new DisposableMessagingMessageListenerAdapter();
     listenerAdapter.setHandlerMethod(methodFactory.createInvocableHandlerMethod(listener, getHandleMethod()));
 
     // Set the mapping if needed
@@ -202,7 +196,7 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @param listener listener
    */
   private void setMapping(final String endpointId, AbstractAdaptableMessageListener listener) {
-    String mapping = getEndpointProperty(endpointId, PROPERTY_JMS_ENDPOINT_MAPPING);
+    String mapping = getEndpointProperty(endpointId, CONFIGURATION_KEY_JMS_ENDPOINT_MAPPING);
     if (MAPPING_JSON.equalsIgnoreCase(mapping)) {
       MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
       converter.setTypeIdPropertyName(JMS_PROPERTY_DTO_CLASSNAME);
@@ -238,8 +232,8 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @param suffix property key suffix
    * @return String value of the property, null if not found
    */
-  private String getEndpointProperty(String endpointId, String suffix) {
-    return getEndpointProperty(endpointId, suffix, false);
+  private String getEndpointProperty(String endpointId, String key) {
+    return getEndpointProperty(endpointId, key, false);
   }
 
   /**
@@ -251,39 +245,12 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @param defaultValue default value if the property is not found
    * @return String value of the property, null if not found
    */
-  private String getEndpointProperty(String endpointId, String suffix, String defaultValue) {
-    String value = getEndpointProperty(endpointId, suffix, false);
+  private String getEndpointProperty(String endpointId, String key, String defaultValue) {
+    String value = getEndpointProperty(endpointId, key, false);
     if (StringUtils.isEmpty(value)) {
       return defaultValue;
     }
     return value;
-  }
-
-  /**
-   * Get endpoint properties prefix
-   *
-   * @param endpointId id of the endpoint
-   * @return properties prefix for this endpoint
-   */
-  private String getEndpointPropertiesPrefix(String endpointId) {
-    StringBuilder propertiesPrefix = new StringBuilder();
-    propertiesPrefix.append(PROPERTY_JMS_ENDPOINT_PREFIX).append(PROPERTY_SEPARATOR);
-    propertiesPrefix.append(endpointId);
-    return propertiesPrefix.toString();
-  }
-
-    /**
-   * Get endpoint properties prefix realated to bpmn configuration
-   *
-   * @param endpointId id of the endpoint
-   * @return bpmn properties prefix for this endpoint
-   */
-  private String getEndpointBpmnPropertiesPrefix(String endpointId) {
-    StringBuilder bpmnPropPrefix = new StringBuilder();
-    bpmnPropPrefix.append(getEndpointPropertiesPrefix(endpointId));
-    bpmnPropPrefix.append(PROPERTY_SEPARATOR);
-    bpmnPropPrefix.append(PROPERTY_JMS_ENDPOINT_BPMN_PREFIX);
-    return bpmnPropPrefix.toString();
   }
   
   /**
@@ -294,15 +261,13 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @param mandatory is the property mandatory
    * @return String value of the property
    */
-  private String getEndpointProperty(String endpointId, String suffix, boolean mandatory) {
-    StringBuilder propertyKey = new StringBuilder();
-    propertyKey.append(getEndpointPropertiesPrefix(endpointId));
-    propertyKey.append(PROPERTY_SEPARATOR).append(suffix);
+  private String getEndpointProperty(String endpointId, String key, boolean mandatory) {
+    String propertyKey = String.format(key, endpointId);
     String propertyValue;
     if (mandatory) {
-      propertyValue = getRequiredProperty(conf, propertyKey.toString());
+      propertyValue = getRequiredProperty(configuration, propertyKey);
     } else {
-      propertyValue = conf.getProperty(propertyKey.toString());
+      propertyValue = configuration.getProperty(propertyKey);
     }
     return StringUtils.trim(propertyValue);
   }
@@ -314,10 +279,20 @@ public class ApplicationConfig implements JmsListenerConfigurer {
    * @param suffix property key suffix
    * @return String value of the property
    */
-  private String getRequiredEndpointProperty(String endpointId, String suffix) {
-    return getEndpointProperty(endpointId, suffix, true);
+  private String getRequiredEndpointProperty(String endpointId, String key) {
+    return getEndpointProperty(endpointId, key, true);
   }
 
+  /**
+   * Get endpoint properties prefix realated to bpmn configuration.
+   * Used to populate listener specific properties (eg.: signal_identifier)
+   * @param endpointId id of the endpoint
+   * @return bpmn properties prefix for this endpoint
+   */
+  private String getEndpointBpmnPropertiesPrefix(String endpointId) {
+    return  String.format(CONFIGURATION_KEY_JMS_ENDPOINT_BPMN_PREFIX, endpointId);
+  }
+  
   /**
    * Initialize message handler method factory
    * @param factory DefaultMessageHandlerMethodFactory
@@ -343,7 +318,6 @@ public class ApplicationConfig implements JmsListenerConfigurer {
   public void setIgnoreErroneousEndpoint(boolean ignore) {
     this.ignoreErroneousEndpoint = ignore;
   }
-  
   
   /**
    * Get a required property
@@ -408,5 +382,28 @@ public class ApplicationConfig implements JmsListenerConfigurer {
     return StringUtils.uncapitalize(StringUtils.remove(
             WordUtils.capitalizeFully(text, PROPERTY_KEY_CASE_SEPARATOR), PROPERTY_KEY_CASE_SEPARATOR)
     );
+  }
+  
+  public class DisposableMessagingMessageListenerAdapter extends MessagingMessageListenerAdapter implements DisposableBean {
+    private InvocableHandlerMethod handlerMethod;
+    
+	/**
+	 * Set the {@link InvocableHandlerMethod} to use to invoke the method
+	 * processing an incoming {@link javax.jms.Message}.
+     * @param handlerMethod method that handles messages
+	 */
+    @Override
+	public void setHandlerMethod(InvocableHandlerMethod handlerMethod) {
+		super.setHandlerMethod(handlerMethod);
+        this.handlerMethod = handlerMethod;
+	}
+    
+    @Override
+    public void destroy() throws Exception {
+      if (handlerMethod.getBean() instanceof DisposableBean) {
+        ((DisposableBean)handlerMethod.getBean()).destroy();
+      }
+    }
+    
   }
 }

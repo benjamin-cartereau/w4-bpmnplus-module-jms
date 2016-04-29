@@ -2,6 +2,8 @@ package eu.w4.contrib.bpmnplus.module.jms.listener;
 
 import eu.w4.common.exception.CheckedException;
 import eu.w4.contrib.bpmnplus.module.jms.exception.JMSModuleException;
+import eu.w4.contrib.bpmnplus.module.jms.identification.ConnectionManager;
+import eu.w4.contrib.bpmnplus.module.jms.identification.User;
 import eu.w4.engine.client.bpmn.w4.infrastructure.DefinitionsIdentifier;
 import eu.w4.engine.client.service.EngineService;
 import eu.w4.engine.client.service.ObjectFactory;
@@ -20,22 +22,22 @@ import ma.glasnost.orika.metadata.TypeBuilder;
 import ma.glasnost.orika.metadata.TypeFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.messaging.Message;
 
 /**
  * Abstract JMS messages listener and processor for W4. Should be thread safe.
  */
-public abstract class AbstractW4MessageListener implements InitializingBean {
+public abstract class AbstractW4MessageListener implements InitializingBean, DisposableBean {
 
   private static final Logger logger = LogManager.getLogger();
 
   // Service to communicate with W4 BPMN+ engine
   protected EngineService engineService;
 
-  // Credentials to authenticate on W4 BPMN+ engine
-  private String engineLogin;
-  private String enginePassword;
+  // Principal and credentials to authenticate on W4 BPMN+ engine
+  private User engineUser;
 
   // Process definition name
   private String definitionsIdentifierName;
@@ -47,6 +49,9 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
   // Several data entries
   private Map<String, String> dataEntriesMapping;
 
+  // W4 connection manager
+  private ConnectionManager connectionManager;
+  
   /**
    * Handle received message. Please note that ByteMessage (without object
    * mapping) and StreamMessage are not managed by the listener.
@@ -136,23 +141,15 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
   private String processW4Action(Map<String, Object> properties, Map<String, Object> dataEntries) {
     String returnedMessage = null;
 
-    Principal principal = null;
-    try {
-      // LOGIN
-      principal = login();
+    // LOGIN
+    Principal principal = connectionManager.login(engineUser);
 
-      long timeBefore = System.currentTimeMillis();
+    long timeBefore = System.currentTimeMillis();
 
-      // PROCESS
-      returnedMessage = doProcessW4Action(principal, properties, dataEntries);
+    // PROCESS
+    returnedMessage = doProcessW4Action(principal, properties, dataEntries);
 
-      logger.debug("Message processed in {}ms", System.currentTimeMillis() - timeBefore);
-    } finally {
-      // LOGOUT
-      if (principal != null) {
-        logout(principal);
-      }
-    }
+    logger.debug("Message processed in {}ms", System.currentTimeMillis() - timeBefore);
 
     // Could return something (eg. process instance id) if needed. If return
     //  value is not null, reply-to channel will be used
@@ -189,42 +186,6 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
   }
 
   /**
-   * Log on to W4 BPMN+ Engine
-   *
-   * @return Principal authenticated user principal
-   */
-  private Principal login() {
-    Principal principal = null;
-    try {
-      principal = engineService.getAuthenticationService().login(engineLogin, enginePassword);
-    } catch (CheckedException cex) {
-      logger.error("Error on login", cex);
-      throw new JMSModuleException("Cannot login against engine", cex);
-    } catch (RemoteException rex) {
-      logger.error("Error on login", rex);
-      throw new JMSModuleException("Cannot login against engine", rex);
-    }
-    return principal;
-  }
-
-  /**
-   * Log out from W4 BPMN+ Engine
-   *
-   * @param principal authenticated user principal
-   */
-  private void logout(Principal principal) {
-    try {
-      engineService.getAuthenticationService().logout(principal);
-    } catch (CheckedException cex) {
-      logger.error("Error on logout", cex);
-      throw new JMSModuleException("Cannot sign out of the engine", cex);
-    } catch (RemoteException rex) {
-      logger.error("Error on logout", rex);
-      throw new JMSModuleException("Cannot sign out of the engine", rex);
-    }
-  }
-
-  /**
    * Initialize listener
    * <ul>
    * <li>define the definitionsIdentifier</li>
@@ -238,8 +199,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
   public void afterPropertiesSet() throws Exception {
     //Assert.notNull(engineService, "EngineService must be set");
     assert engineService != null : "EngineService must be set";
-    assert engineLogin != null : "Login must be set";
-    assert enginePassword != null : "Password must be set";
+    assert engineUser != null : "User must be set";
     assert definitionsIdentifierName != null : "Definitions identifier must be set";
 
     try {
@@ -265,21 +225,12 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
   }
 
   /**
-   * Setter for password
-   *
-   * @param enginePassword the enginePassword to set
+   * Setter for user
+   * @param user the engine user to use
    */
-  public void setEnginePassword(String enginePassword) {
-    this.enginePassword = enginePassword;
-  }
-
-  /**
-   * Setter for login
-   *
-   * @param engineLogin the engineLogin to set
-   */
-  public void setEngineLogin(String engineLogin) {
-    this.engineLogin = engineLogin;
+  public void setEngineUser(User user) {
+    this.engineUser = user;
+    // TODO : need to logout if user change?
   }
 
   /**
@@ -320,5 +271,19 @@ public abstract class AbstractW4MessageListener implements InitializingBean {
    */
   public void setDataEntryId(String dataEntryId) {
     this.dataEntryId = dataEntryId;
+  }
+  
+  /**
+   * Set the W4 connection manager
+   * @param connectionManager ConnectionManager
+   */
+  public void setConnectionManager(ConnectionManager connectionManager) {
+    this.connectionManager = connectionManager;
+  }
+  
+  @Override
+  public void destroy() throws Exception {
+    logger.debug("Destroy listener ({})", this.getClass().getName());
+    connectionManager.logout(engineUser);
   }
 }
