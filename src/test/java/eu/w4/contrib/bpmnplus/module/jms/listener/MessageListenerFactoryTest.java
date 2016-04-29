@@ -36,28 +36,31 @@ public class MessageListenerFactoryTest {
   @Test(expected = NullPointerException.class)
   public void testGetListenerWithoutAction() throws Exception {
     // BpmnAction is required
-    listenerFactory.getListener(null, null, null, null, null, null);
+    listenerFactory.getListener(null, null, null, null, null);
   }
 
   @Test(expected = AssertionError.class)
   public void testGetListenerWithoutEngine() throws Exception {
     // EngineService is required
-    listenerFactory.getListener(BpmnAction.INSTANTIATE, null, null, null, null, null);
+    listenerFactory.getListener(BpmnAction.INSTANTIATE, null, null, null, null);
   }
 
   @Test(expected = AssertionError.class)
   public void testGetListenerWithoutLogin() throws Exception {
-    listenerFactory.getListener(BpmnAction.SIGNAL, engine, null, null, null, null);
+    listenerFactory.setEngineService(engine);
+    listenerFactory.getListener(BpmnAction.SIGNAL, null, null, null, null);
   }
 
   @Test(expected = AssertionError.class)
   public void testGetListenerWithoutPassword() throws Exception {
-    listenerFactory.getListener(BpmnAction.SIGNAL, engine, "", null, null, null);
+    listenerFactory.setEngineService(engine);
+    listenerFactory.getListener(BpmnAction.SIGNAL, "", null, null, null);
   }
 
   @Test(expected = AssertionError.class)
   public void testGetListenerWithoutDefinitionsIdentifier() throws Exception {
-    listenerFactory.getListener(BpmnAction.SIGNAL, engine, "", "", null, null);
+    listenerFactory.setEngineService(engine);
+    listenerFactory.getListener(BpmnAction.SIGNAL, "", "", null, null);
   }
 
   @Test
@@ -67,7 +70,9 @@ public class MessageListenerFactoryTest {
 
     when(engine.getObjectFactory()).thenReturn(objectFactory);
     when(objectFactory.newDefinitionsIdentifier()).thenReturn(mock(DefinitionsIdentifier.class));
-    listenerFactory.getListener(BpmnAction.SIGNAL, engine, "", "", "", null);
+    
+    listenerFactory.setEngineService(engine);
+    listenerFactory.getListener(BpmnAction.SIGNAL, "", "", "", null);
   }
 
   @Test
@@ -79,7 +84,9 @@ public class MessageListenerFactoryTest {
 
     Map<String, Object> properties = new HashMap<String, Object>();
     properties.put("signalIdentifier", RandomStringUtils.random(1));
-    AbstractW4MessageListener listener = listenerFactory.getListener(BpmnAction.SIGNAL, engine, "", "", "", properties);
+    
+    listenerFactory.setEngineService(engine);
+    AbstractW4MessageListener listener = listenerFactory.getListener(BpmnAction.SIGNAL, "", "", "", properties);
 
     assertThat(listener, IsInstanceOf.instanceOf(SignalTriggeringListener.class));
   }

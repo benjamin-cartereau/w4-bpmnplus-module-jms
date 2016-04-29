@@ -8,7 +8,6 @@ import eu.w4.engine.client.bpmn.w4.process.ProcessIdentifier;
 import eu.w4.engine.client.service.EngineService;
 import eu.w4.engine.client.service.ObjectFactory;
 import java.rmi.RemoteException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.junit.Test;
@@ -17,13 +16,12 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.core.env.MutablePropertySources;
 import org.springframework.jms.config.JmsListenerEndpointRegistrar;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import static org.mockito.Mockito.*;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 //@ContextConfiguration("ApplicationConfigTest-context.xml")
@@ -90,11 +88,9 @@ public class ApplicationConfigTest {
       }
 
       assert engineService != null : "Engine mock not set";
-      MutablePropertySources sources = pApplicationContext.getEnvironment().getPropertySources();
-      Map<String, Object> w4Properties = new HashMap<String, Object>();
-      w4Properties.put("engineService", engineService);
-      MapPropertySource mps = new MapPropertySource("w4Properties", w4Properties);
-      sources.addFirst(mps);
+      
+      ConfigurableListableBeanFactory beanFactory = pApplicationContext.getBeanFactory();
+      beanFactory.registerSingleton("engineService", engineService);
     }
   }
 }
