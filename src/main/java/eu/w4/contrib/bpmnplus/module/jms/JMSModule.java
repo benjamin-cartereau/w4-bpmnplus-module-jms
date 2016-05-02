@@ -26,6 +26,7 @@ public class JMSModule implements ExternalModule {
     
     private static final String SPRING_APPLICATION_CONTEXT = "JMSModule-context.xml";
     private static final long TIME_BETWEEN_SHUTDOWN_AND_STARTUP = 1000;
+    private static final long ENGINE_STARTUP_BREATH_TIME = 10000;
     
     private Thread module;
     
@@ -40,11 +41,6 @@ public class JMSModule implements ExternalModule {
         logger.info("Startup JMS module...");
         
         if (logger.isDebugEnabled()) debugModuleClasspath();
-        
-        // Wait for the engine to be completely started
-        logger.debug("Wait for the engine to be completely started...");
-        emc.getEngineService().waitForStartup();
-        logger.debug("\t...engine started.");
         
         // Spring JMS Thread having its own ContextClassLoader mapped on the current ClassLoader
         module = new SpringJMSThread(emc.getEngineService());
@@ -114,6 +110,23 @@ public class JMSModule implements ExternalModule {
          */
         @Override
         public void run() {
+            // Wait for the engine to be completely started
+            logger.debug("Wait for the engine to be completely started...");
+            try {
+                this.engineService.waitForStartup();
+            } catch (RemoteException e) {
+                logger.error("Error encountered while waiting for engine to start", e);
+            } catch (CheckedException e) {
+                logger.error("Error encountered while waiting for engine to start", e);
+            }
+            logger.debug("\t...engine started.");
+            
+            // Give the engine some time to breath before sending potential huge load from JMS.
+            // It may allow any other modules to accomplish post their own post startup actions.
+            try {
+                Thread.sleep(ENGINE_STARTUP_BREATH_TIME);
+            } catch (InterruptedException e) {}
+            
             logger.debug("Setup Spring Context");
             
             GenericApplicationContext parentCtx = new GenericApplicationContext();
