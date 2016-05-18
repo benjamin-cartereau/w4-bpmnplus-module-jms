@@ -139,15 +139,14 @@ public abstract class AbstractW4MessageListener implements InitializingBean, Dis
    * @return any message to send back
    */
   private String processW4Action(Map<String, Object> properties, Map<String, Object> dataEntries) {
-    String returnedMessage = null;
-
+    
     // LOGIN
     Principal principal = connectionManager.login(engineUser);
-
+    
     long timeBefore = System.currentTimeMillis();
 
     // PROCESS
-    returnedMessage = doProcessW4Action(principal, properties, dataEntries);
+    String returnedMessage = doProcessW4Action(principal, properties, dataEntries);
 
     logger.debug("Message processed in {}ms", System.currentTimeMillis() - timeBefore);
 
