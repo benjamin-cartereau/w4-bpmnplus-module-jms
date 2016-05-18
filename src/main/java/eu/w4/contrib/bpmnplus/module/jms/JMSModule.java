@@ -26,7 +26,7 @@ public class JMSModule implements ExternalModule {
     
     private static final String SPRING_APPLICATION_CONTEXT = "JMSModule-context.xml";
     private static final long TIME_BETWEEN_SHUTDOWN_AND_STARTUP = 1000;
-    private static final long ENGINE_STARTUP_BREATH_TIME = 10000;
+    private static final long ENGINE_STARTUP_BREATH_TIME = 10000; //ms
     
     private Thread module;
     
@@ -123,6 +123,7 @@ public class JMSModule implements ExternalModule {
             
             // Give the engine some time to breath before sending potential huge load from JMS.
             // It may allow any other modules to accomplish post their own post startup actions.
+            logger.debug("Give the engine some time ({}ms) to breath before starting messages processing", ENGINE_STARTUP_BREATH_TIME);
             try {
                 Thread.sleep(ENGINE_STARTUP_BREATH_TIME);
             } catch (InterruptedException e) {}
