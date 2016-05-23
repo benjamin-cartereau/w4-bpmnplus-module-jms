@@ -5,7 +5,7 @@
 
   <groupId>eu.w4.contrib</groupId>
   <artifactId>bpmnplus-module-jms</artifactId>
-  <version>1.2.3</version>
+  <version>1.2.2</version>
   <packaging>jar</packaging>
   <name>BPMN+ JMS Module</name>
   <description>A JMS module listening to messages and interacting with BPMN+ Engine</description>
@@ -205,12 +205,15 @@
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
       <version>${version.commons.beanutils}</version>
+      <type>jar</type>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>${version.commons.lang3}</version>
+      <type>jar</type>
     </dependency>
+    
     
     <!-- Logging -->
     <dependency>
