@@ -7,24 +7,26 @@ import eu.w4.engine.core.module.external.ExternalModuleContext;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.rmi.RemoteException;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.core.env.MapPropertySource;
+import org.springframework.context.support.GenericApplicationContext;
 
 /**
- * JMS Module for W4 enabling to listen to JMS destination and start a process
+ * Entry point for module definition.
+ * JMS Module for W4 enabling to listen to JMS destination and interact with processes :<ul>
+ * <li>instantiate a process</li>
+ * <li>trigger a signal</li></ul>
  */
 public class JMSModule implements ExternalModule {
-    final Log logger = LogFactory.getLog(JMSModule.class);
+    private static final Logger logger = LogManager.getLogger();
     
     public static String PROPERTY_ENGINE_SERVICE = "engineService";
     
-    private static final String SPRING_APPLICATION_CONTEXT = "appContext.xml";
+    private static final String SPRING_APPLICATION_CONTEXT = "JMSModule-context.xml";
     private static final long TIME_BETWEEN_SHUTDOWN_AND_STARTUP = 1000;
+    private static final long ENGINE_STARTUP_BREATH_TIME = 10000; //ms
     
     private Thread module;
     
@@ -54,7 +56,7 @@ public class JMSModule implements ExternalModule {
         ClassLoader cl = this.getClass().getClassLoader();
         URL[] urls = ((URLClassLoader) cl).getURLs();
         for (URL url: urls) {
-            logger.debug("   - " + url.getFile());
+            logger.debug("   * {}", url.getFile());
         }
     }
     
@@ -108,22 +110,36 @@ public class JMSModule implements ExternalModule {
          */
         @Override
         public void run() {
+            // Wait for the engine to be completely started
+            logger.debug("Wait for the engine to be completely started...");
+            try {
+                this.engineService.waitForStartup();
+            } catch (RemoteException e) {
+                logger.error("Error encountered while waiting for engine to start", e);
+            } catch (CheckedException e) {
+                logger.error("Error encountered while waiting for engine to start", e);
+            }
+            logger.debug("\t...engine started.");
+            
+            // Give the engine some time to breath before sending potential huge load from JMS.
+            // It may allow any other modules to accomplish post their own post startup actions.
+            logger.debug("Give the engine some time ({}ms) to breath before starting messages processing", ENGINE_STARTUP_BREATH_TIME);
+            try {
+                Thread.sleep(ENGINE_STARTUP_BREATH_TIME);
+            } catch (InterruptedException e) {}
+            
             logger.debug("Setup Spring Context");
             
+            GenericApplicationContext parentCtx = new GenericApplicationContext();
+	        parentCtx.getBeanFactory().registerSingleton(PROPERTY_ENGINE_SERVICE, engineService);
+            
             // Setup Spring context with JMS consumers
-            ClassPathXmlApplicationContext applicationContext = new ClassPathXmlApplicationContext();
+            ClassPathXmlApplicationContext applicationContext = new ClassPathXmlApplicationContext(parentCtx);
             applicationContext.setConfigLocation(SPRING_APPLICATION_CONTEXT);
             applicationContext.setClassLoader(this.getClass().getClassLoader());
             
-            // Build a property source embedding W4 engine service
-            Map<String, Object> w4Properties = new HashMap<String, Object>();
-            w4Properties.put(PROPERTY_ENGINE_SERVICE, engineService);
-            MapPropertySource appProps = new MapPropertySource("w4Properties", w4Properties);
-            
-            // Push environment properties to Spring application context 
-            applicationContext.getEnvironment().getPropertySources().addFirst(appProps);
-            
             // Do refresh app context
+            parentCtx.refresh();
             applicationContext.refresh();
             
             this.appContext = applicationContext;
