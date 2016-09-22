@@ -93,7 +93,7 @@ When restarting W4 BPMN+ Engine, module will be started (logs may be produced de
 License
 -------
 
-Copyright (c) 2015, Benjamin Cartereau
+Copyright (c) 2015-2016, Benjamin Cartereau
 
 This project is licensed under the terms of the MIT License (see LICENSE file)
 

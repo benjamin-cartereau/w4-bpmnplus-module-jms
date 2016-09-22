@@ -51,7 +51,7 @@ public class ConnectionManager implements DisposableBean {
       throw new IllegalArgumentException("User login cannot be null");
     }
 
-    Principal principal = null;
+    Principal principal;
     synchronized (usersPrincipals) {
       principal = usersPrincipals.get(user);
 
@@ -60,7 +60,7 @@ public class ConnectionManager implements DisposableBean {
           if (authenticationService.getEnginePrincipalState(principal).equals(EnginePrincipalState.VALID)) {
             logger.debug("No need to login, reuse existing valid principal for '{}'", principal.getName());
             return principal;
-          }
+          } 
           else {
             logger.debug("Principal for '{}' found in cache, but not valid anymore", principal.getName());
           }
@@ -88,23 +88,27 @@ public class ConnectionManager implements DisposableBean {
     if (user == null) {
       return;
     }
-    Principal principal = usersPrincipals.get(user);
-    if (principal == null) {
-      logger.debug("User {} cannot be found from cache (do to log him out from W4 BPMN+ Engine)", user.getLogin());
-      return;
-    }
-    
-    logger.info("Log out {} from W4 BPMN+ Engine", user.getLogin());
-    try {
-      authenticationService.logout(principal);
-      usersPrincipals.remove(user);
-    } catch (CheckedException cex) {
-      //logger.error("Error on logout", cex);
-      //throw new JMSModuleException("Cannot sign out of the engine", cex);
-      logger.debug("Cannot logout ({})", cex.getClass().getName());
-    } catch (RemoteException rex) {
-      logger.error("Error on logout (remote access to the engine)", rex);
-      throw new JMSModuleException("Cannot sign out of the engine", rex);
+
+    synchronized (usersPrincipals) {
+      Principal principal = usersPrincipals.get(user);
+      if (principal == null) {
+        logger.debug("User {} cannot be found from cache (cannot log him out from W4 BPMN+ Engine)", user.getLogin());
+        return;
+      }
+
+      logger.info("Log out {} from W4 BPMN+ Engine", user.getLogin());
+      try {
+        usersPrincipals.remove(user);
+        authenticationService.logout(principal);
+      } catch (CheckedException cex) {
+        // Not an error if principal has already been logged out
+        //logger.error("Error on logout", cex);
+        //throw new JMSModuleException("Cannot sign out of the engine", cex);
+        logger.debug("Cannot logout ({})", cex.getClass().getName());
+      } catch (RemoteException rex) {
+        logger.error("Error on logout (remote access to the engine)", rex);
+        throw new JMSModuleException("Cannot sign out of the engine", rex);
+      }
     }
   }
 
@@ -118,16 +122,19 @@ public class ConnectionManager implements DisposableBean {
       return;
     }
     logger.info("Log out {} from W4 BPMN+ Engine", principal.getName());
-    try {
-      authenticationService.logout(principal);
-      removePrincipal(principal);
-    } catch (CheckedException cex) {
-      //logger.error("Error on logout", cex);
-      //throw new JMSModuleException("Cannot sign out of the engine", cex);
-      logger.debug("Cannot logout ({})", cex.getClass().getName());
-    } catch (RemoteException rex) {
-      logger.error("Error on logout (remote access to the engine)", rex);
-      throw new JMSModuleException("Cannot sign out of the engine", rex);
+    synchronized (usersPrincipals) {
+      try {
+        removePrincipal(principal);
+        authenticationService.logout(principal);
+      } catch (CheckedException cex) {
+        // Not an error if principal has already been logged out
+        //logger.error("Error on logout", cex);
+        //throw new JMSModuleException("Cannot sign out of the engine", cex);
+        logger.debug("Cannot logout ({})", cex.getClass().getName());
+      } catch (RemoteException rex) {
+        logger.error("Error on logout (remote access to the engine)", rex);
+        throw new JMSModuleException("Cannot sign out of the engine", rex);
+      }
     }
   }
 
