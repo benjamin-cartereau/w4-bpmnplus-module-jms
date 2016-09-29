@@ -40,8 +40,8 @@ public abstract class AbstractW4MessageListener implements InitializingBean, Dis
   private User engineUser;
 
   // Process definition name
-  private String definitionsIdentifierName;
-  protected DefinitionsIdentifier definitionsIdentifier;
+  protected String definitionsIdentifierName;
+  protected DefinitionsIdentifier lastVersionDefIdentifier;
 
   // Only one data entry
   private String dataEntryId;
@@ -187,7 +187,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean, Dis
   /**
    * Initialize listener
    * <ul>
-   * <li>define the definitionsIdentifier</li>
+   * <li>define the lastVersionDefIdentifier</li>
    * </ul>
    * Can be overridden if others initializations must be done
    *
@@ -203,8 +203,8 @@ public abstract class AbstractW4MessageListener implements InitializingBean, Dis
 
     try {
       ObjectFactory factory = engineService.getObjectFactory();
-      this.definitionsIdentifier = factory.newDefinitionsIdentifier();
-      this.definitionsIdentifier.setId(definitionsIdentifierName);
+      this.lastVersionDefIdentifier = factory.newDefinitionsIdentifier();
+      this.lastVersionDefIdentifier.setId(definitionsIdentifierName);
     } catch (CheckedException cex) {
       logger.error(cex.getMessage(), cex);
       throw new JMSModuleException("Cannot retrieve identifiers", cex);
@@ -235,7 +235,7 @@ public abstract class AbstractW4MessageListener implements InitializingBean, Dis
   /**
    * Setter for definitions identifier name
    *
-   * @param definitionsIdentifier the definitionsIdentifier to set
+   * @param definitionsIdentifier the name of the definitions identifier to set
    */
   public void setDefinitionsIdentifier(String definitionsIdentifier) {
     this.definitionsIdentifierName = definitionsIdentifier;
