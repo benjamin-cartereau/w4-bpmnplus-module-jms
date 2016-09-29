@@ -65,14 +65,14 @@ public class ProcessInstantiationListener extends AbstractW4MessageListener {
     
     this.processIdentifier = factory.newProcessIdentifier();
     this.processIdentifier.setId(processIdentifierName);
-    this.processIdentifier.setDefinitionsIdentifier(definitionsIdentifier);
+    this.processIdentifier.setDefinitionsIdentifier(lastVersionDefIdentifier);
     
     if (StringUtils.isEmpty(collaborationIdentifierName)) {
       this.collaborationIdentifier = null;
     } else {
       this.collaborationIdentifier = factory.newCollaborationIdentifier();
       this.collaborationIdentifier.setId(collaborationIdentifierName);
-      this.collaborationIdentifier.setDefinitionsIdentifier(definitionsIdentifier);
+      this.collaborationIdentifier.setDefinitionsIdentifier(lastVersionDefIdentifier);
     }
   }
   
