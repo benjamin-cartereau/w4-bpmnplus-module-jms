@@ -2,10 +2,18 @@ package eu.w4.contrib.bpmnplus.module.jms.listener;
 
 import eu.w4.common.exception.CheckedException;
 import eu.w4.contrib.bpmnplus.module.jms.exception.JMSModuleException;
+import eu.w4.engine.client.bpmn.SignalNotFoundException;
 import eu.w4.engine.client.bpmn.w4.events.SignalIdentifier;
+import eu.w4.engine.client.bpmn.w4.infrastructure.DefinitionsFilter;
+import eu.w4.engine.client.bpmn.w4.infrastructure.DefinitionsIdentifier;
+import eu.w4.engine.client.bpmn.w4.infrastructure.DefinitionsInfo;
+import eu.w4.engine.client.bpmn.w4.infrastructure.DefinitionsInfoFilter;
 import eu.w4.engine.client.service.ObjectFactory;
 import java.rmi.RemoteException;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -24,7 +32,7 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
   // Signal identification
   private String signalId;
   private String defaultSignalName;
-  private SignalIdentifier signalIdentifier;
+  //private SignalIdentifier lastVersionSignalIdentifier;
 
   @Override
   protected String doProcessW4Action(Principal principal, Map<String, Object> properties, Map<String, Object> dataEntries) {
@@ -45,7 +53,7 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
     }
     
     // Info about process to instantiate and passed data entries
-    logger.info("Trigger signal ({}/{}) with payload: {}", signalIdentifier.getId(), signalName, dataEntries);
+    logger.info("Trigger signal ({}) with payload: {}", signalName, dataEntries);
     
     // Get 1st dataEntry if any
     Object payload = null;
@@ -56,9 +64,23 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
     try {
       long timeBefore = System.currentTimeMillis();
       
-      engineService.getEventService().triggerSignal(principal, signalIdentifier, signalName, payload);
+      // Retrieve all versions of the signal identifier
+      Collection<SignalIdentifier> signalIdentifiers = getSignalIdentifiers(principal);
       
-      logger.debug("Signal triggered in {}ms", System.currentTimeMillis() - timeBefore);
+      // Trigger the signal for all versions of the identifier
+      //   TODO : could be an option or rely on a version defined in message header
+      int versionsSent = 0;
+      for (SignalIdentifier signalIdentifier : signalIdentifiers) {
+        logger.debug("Trigger signal for identifier {}, version {}", signalIdentifier.getId(), signalIdentifier.getDefinitionsIdentifier().getVersion());
+        try {
+          engineService.getEventService().triggerSignal(principal, signalIdentifier, signalName, payload);
+          versionsSent++;
+        } catch (SignalNotFoundException snfe) {
+          logger.debug("    signal not found (version {})", signalIdentifier.getDefinitionsIdentifier().getVersion());
+        }
+      }
+      
+      logger.debug("Signal triggered (for {} versions) in {}ms", versionsSent, System.currentTimeMillis() - timeBefore);
     } catch (CheckedException cex) {
       logger.error(cex.getMessage(), cex);
     } catch (RemoteException rex) {
@@ -76,10 +98,10 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
     
     logger.debug("signalId={}-defaultSignalName={}", signalId, defaultSignalName);
     
-    ObjectFactory factory = engineService.getObjectFactory();
-    this.signalIdentifier = factory.newSignalIdentifier();
-    this.signalIdentifier.setDefinitionsIdentifier(definitionsIdentifier);
-    this.signalIdentifier.setId(signalId);
+//    ObjectFactory factory = engineService.getObjectFactory();
+//    this.lastVersionSignalIdentifier = factory.newSignalIdentifier();
+//    this.lastVersionSignalIdentifier.setDefinitionsIdentifier(lastVersionDefIdentifier);
+//    this.lastVersionSignalIdentifier.setId(signalId);
   }
   
   public void setSignalIdentifier(String signalId) {
@@ -88,5 +110,56 @@ public class SignalTriggeringListener extends AbstractW4MessageListener {
 
   public void setSignalName(String signalName) {
     this.defaultSignalName = signalName;
+  }
+
+  /**
+   * Retrieve all the versions of a signal identifier
+   * @param principal Principal of the connected user
+   */
+  private Collection<SignalIdentifier> getSignalIdentifiers(Principal principal) throws CheckedException, RemoteException {
+    List<SignalIdentifier> signalIdentifiers = new ArrayList<SignalIdentifier>();
+    
+    List<DefinitionsInfo> definitionsInfos = null;
+    try {
+      DefinitionsInfoFilter dif = engineService.getObjectFactory().newDefinitionsInfoFilter();
+      DefinitionsFilter df = engineService.getObjectFactory().newDefinitionsFilter();
+      df.definitionsIdLike(definitionsIdentifierName);
+      dif.and(df);
+      
+      definitionsInfos = engineService.getDefinitionsService().searchDefinitionsInfos(principal, null, dif, null, 0, Integer.MAX_VALUE);
+    } catch (CheckedException cex) {
+      logger.error(cex.getMessage(), cex);
+      throw cex;
+    } catch (RemoteException rex) {
+      logger.error(rex.getMessage(), rex);
+      throw rex;
+    }
+    
+    if (definitionsInfos != null) {
+      logger.debug("{} definitions (versions) found", definitionsInfos.size());
+      if (logger.isDebugEnabled()) {
+        for (DefinitionsInfo definitionInfo : definitionsInfos) {
+          logger.debug("\tDefinition id:{} - version:{}", definitionInfo.getDefinitionsIdentifier().getId(), definitionInfo.getDefinitionsIdentifier().getVersion());
+        }
+      }
+    }
+    else {
+      logger.warn("No definition found for name '{}'", definitionsIdentifierName);
+    }
+    
+    ObjectFactory factory = engineService.getObjectFactory();
+    for (DefinitionsInfo definitionInfo : definitionsInfos) {
+      DefinitionsIdentifier definitionIdentifier = factory.newDefinitionsIdentifier();
+      definitionIdentifier.setId(definitionInfo.getDefinitionsIdentifier().getId());
+      definitionIdentifier.setVersion(definitionInfo.getDefinitionsIdentifier().getVersion());
+      
+      SignalIdentifier signalIdentifier = factory.newSignalIdentifier();
+      signalIdentifier.setDefinitionsIdentifier(definitionIdentifier);
+      signalIdentifier.setId(signalId);
+      
+      signalIdentifiers.add(signalIdentifier);
+    }
+    
+    return signalIdentifiers;
   }
 }
